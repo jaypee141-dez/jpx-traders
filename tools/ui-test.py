@@ -1,0 +1,65 @@
+import sys
+from playwright.sync_api import sync_playwright
+import os
+BASE = os.environ.get('BASE', 'http://127.0.0.1:3111')
+errs, fails = [], []
+def check(c, m):
+    if not c:
+        fails.append(m); print('FAIL', m)
+
+with sync_playwright() as p:
+    b = p.chromium.launch()
+    ctx = b.new_context(viewport={'width': 1360, 'height': 900}); pg = ctx.new_page()
+    pg.on('console', lambda m: errs.append(m.text) if m.type == 'error' and 'ERR_' not in m.text else None)
+    pg.on('pageerror', lambda e: errs.append('PAGEERR ' + str(e)))
+    pg.goto(BASE + '/'); pg.wait_for_selector('#k-out .big-out')
+    check('lots' in pg.inner_text('#k-out .v'), 'landing calc renders')
+    pg.screenshot(path='/tmp/s-landing.png')
+    pg.goto(BASE + '/register'); pg.fill('#au-name', 'Hiro Tanaka'); pg.fill('#au-email', 'hiro@example.com'); pg.fill('#au-pw', 'supersecret1')
+    pg.click('button[type=submit]'); pg.wait_for_selector('.rail')
+    pg.wait_for_selector('.empty')
+    check('Add your first trades' in pg.inner_text('#view'), 'onboarding shown for new user')
+    pg.goto(BASE + '/app#/brokers'); pg.wait_for_selector('#add-acct'); pg.click('#add-acct')
+    pg.fill('#a-name', 'Live IC'); pg.fill('#a-bal', '10000'); pg.click('#af-save'); pg.wait_for_selector('text=Live IC')
+    pg.click('[data-import]'); pg.set_input_files('#imp-file', '/tmp/seed.csv'); pg.click('#imp-go'); pg.wait_for_selector('#imp-result .panel')
+    txt = pg.inner_text('#imp-result'); print(txt); check('60 imported' in txt, '60 imported')
+    pg.click('.modal-head [data-close]')
+    for name in ['dashboard', 'trades', 'calendar', 'journal', 'analytics', 'risk', 'brokers', 'settings', 'admin']:
+        pg.goto(BASE + '/app#/' + name); pg.wait_for_timeout(1000)
+        check(pg.locator('.spin').count() == 0, name + ' finished loading')
+        check('went wrong' not in pg.inner_text('#view'), name + ' no error')
+        pg.screenshot(path=f'/tmp/s-{name}.png', full_page=True)
+    pg.goto(BASE + '/app#/dashboard'); pg.wait_for_selector('.kpis'); check(pg.locator('#eq svg path').count() >= 2, 'equity chart drawn')
+    pg.goto(BASE + '/app#/trades'); pg.wait_for_selector('tbody tr'); check('60 trades' in pg.inner_text('#t-sub'), '60 trades listed')
+    pg.select_option('[data-t=symbol]', 'XAUUSD'); pg.wait_for_timeout(600); n = pg.locator('tbody tr').count(); check(0 < n < 60, 'symbol filter works')
+    pg.locator('tbody tr').first.click(); pg.wait_for_selector('#tf'); pg.fill('#f-notes', 'UI test note'); pg.click('#tf-save'); pg.wait_for_selector('.toast')
+    pg.wait_for_timeout(500)
+    pg.locator('tbody tr').first.click(); pg.wait_for_selector('#tf'); check(pg.input_value('#f-notes') == 'UI test note', 'note persisted'); pg.screenshot(path='/tmp/s-tradeform.png'); pg.keyboard.press('Escape')
+    pg.click('[data-act=add]'); pg.wait_for_selector('#tf'); pg.fill('#f-symbol', 'nas100'); pg.fill('#f-volume', '1'); pg.fill('#f-profit', '-42.5'); pg.fill('#f-risk_amount', '50'); pg.click('#tf-save'); pg.wait_for_selector('.toast')
+    pg.select_option('[data-t=symbol]', ''); pg.wait_for_timeout(600); check('61 trades' in pg.inner_text('#t-sub'), 'manual trade added (61)')
+    pg.goto(BASE + '/app#/calendar'); pg.wait_for_selector('.cal-wrap')
+    for _ in range(8):
+        if pg.locator('[data-day]').count(): break
+        pg.click('#c-prev'); pg.wait_for_timeout(500)
+    check(pg.locator('[data-day]').count() > 0, 'calendar shows trading days')
+    pg.screenshot(path='/tmp/s-calendar2.png', full_page=True)
+    pg.locator('[data-day]').first.click(); pg.wait_for_selector('#day-list'); pg.screenshot(path='/tmp/s-day.png'); pg.keyboard.press('Escape')
+    pg.goto(BASE + '/app#/journal'); pg.wait_for_selector('#j-save'); pg.click('.mood >> nth=1'); pg.fill('#j-plan', 'Only London breakouts'); pg.click('#j-save'); pg.wait_for_selector('.toast')
+    pg.reload(); pg.wait_for_selector('#j-plan'); check(pg.input_value('#j-plan') == 'Only London breakouts', 'journal persisted')
+    pg.goto(BASE + '/app#/risk'); pg.wait_for_selector('#k-out'); pg.fill('#k-entry', '1.1000'); pg.fill('#k-stop', '1.0950'); pg.wait_for_timeout(200)
+    check('lots' in pg.inner_text('#k-out'), 'risk calc output')
+    pg.fill('#r-dl', '100'); pg.click('#rules-form button[type=submit]'); pg.wait_for_selector('.toast')
+    pg.goto(BASE + '/app#/settings'); pg.wait_for_selector('#theme-seg'); pg.click('#theme-seg [data-v=dark]'); pg.wait_for_timeout(300)
+    pg.goto(BASE + '/app#/dashboard'); pg.wait_for_selector('.kpis'); pg.screenshot(path='/tmp/s-dark.png')
+    pg.goto(BASE + '/app#/admin'); pg.wait_for_selector('[data-u]'); pg.click('[data-u]'); pg.wait_for_selector('#m-role'); pg.keyboard.press('Escape')
+    m = b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2, is_mobile=True, has_touch=True); mp = m.new_page()
+    mp.on('pageerror', lambda e: errs.append('MOBILE ' + str(e)))
+    mp.goto(BASE + '/login'); mp.fill('#au-email', 'hiro@example.com'); mp.fill('#au-pw', 'supersecret1'); mp.click('button[type=submit]'); mp.wait_for_selector('.tabbar')
+    for name in ['dashboard', 'trades', 'calendar', 'analytics', 'risk', 'journal', 'brokers']:
+        mp.goto(BASE + '/app#/' + name); mp.wait_for_timeout(1000)
+        ow = mp.evaluate('document.documentElement.scrollWidth - window.innerWidth'); check(ow <= 1, f'mobile {name} no horizontal overflow ({ow}px)')
+        mp.screenshot(path=f'/tmp/m-{name}.png')
+    mp.click('#more-btn'); mp.wait_for_selector('.sheet-list'); mp.screenshot(path='/tmp/m-more.png')
+    mp.keyboard.press('Escape'); mp.goto(BASE + '/app#/trades'); mp.wait_for_selector('.trade-row'); mp.locator('.trade-row').first.click(); mp.wait_for_selector('#tf'); mp.screenshot(path='/tmp/m-tradeform.png')
+    b.close()
+print('console errors:', errs); print('FAILS:', fails); sys.exit(1 if fails or errs else 0)

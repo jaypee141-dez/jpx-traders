@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>JPX Traders · Trading journal and analytics</title>
+<meta name="description" content="A trading journal that imports your MT4/MT5 history, syncs live from MetaTrader 5, and shows which setups, symbols and habits make or lose you money.">
+<meta name="theme-color" content="#141b3a">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/landing.css">
+<script src="/theme.js"></script>
+</head>
+<body>
+<header class="lp-nav"><a class="brand" href="/"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#3446d6"/><path d="M7 21l5-6 4 3 7-9" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="23" cy="9" r="2.4" fill="#2dd4a7"/></svg>JPX Traders</a><a class="btn ghost" href="/login">Sign in</a><a class="btn primary" href="/register">Create account</a></header>
+<main>
+<section class="lp-hero">
+  <div>
+    <h1>Know why you win. Fix why you lose.</h1>
+    <p class="lead">JPX Traders turns your trade history into a clear picture of what is working: by setup, symbol, hour and mood. Import from MetaTrader or sync every closed trade live.</p>
+    <div class="lp-cta"><a class="btn primary" href="/register">Start your journal</a><a class="btn" href="#how">See how it works</a></div>
+  </div>
+  <div class="lp-calc calc" id="lp-calc">
+    <div><h2>Size your next trade</h2><div class="sub">The same calculator is built into the app. Try it with your own numbers.</div></div>
+    <div class="field"><label for="k-preset">Instrument</label><select class="input" id="k-preset"></select></div>
+    <div class="form-grid">
+      <div class="field"><label for="k-bal">Account balance</label><input class="input" id="k-bal" type="number" step="any" inputmode="decimal" value="10000"></div>
+      <div class="field"><label for="k-risk">Risk per trade (%)</label><input class="input" id="k-risk" type="number" step="any" inputmode="decimal" value="1"></div>
+      <div class="field"><label for="k-entry">Entry</label><input class="input" id="k-entry" type="number" step="any" inputmode="decimal" value="1.0850"></div>
+      <div class="field"><label for="k-stop">Stop loss</label><input class="input" id="k-stop" type="number" step="any" inputmode="decimal" value="1.0820"></div>
+      <div class="field full"><label for="k-target">Target (optional)</label><input class="input" id="k-target" type="number" step="any" inputmode="decimal" value="1.0910"></div>
+      <div class="field" id="k-cs-wrap" hidden><label for="k-cs">Units per lot</label><input class="input" id="k-cs" type="number" step="any" value="100000"></div>
+    </div>
+    <div id="k-out" class="calc-out" aria-live="polite"></div>
+  </div>
+</section>
+
+<section class="lp-band" id="how"><div class="in"><h2>From broker history to a clear review in three steps</h2>
+  <div class="lp-steps">
+    <div><b>1. Bring trades in</b><p>Live sync from MetaTrader 5 with an Expert Advisor, a CSV import from MT4 or MT5, or log trades by hand for any market.</p></div>
+    <div><b>2. Add context</b><p>Tag the setup, rate your execution, record the amount risked and what you were feeling. Takes seconds per trade.</p></div>
+    <div><b>3. Read the numbers</b><p>Profit factor, expectancy, drawdown, R-multiples and breakdowns by hour, weekday, symbol and setup, all computed from your own trades.</p></div>
+  </div></div></section>
+
+<section class="lp-feat">
+  <div class="lp-row"><div><h3>Analytics that answer questions</h3></div><div><p>Which setup actually makes money? Do you lose more on Fridays? Is your edge in longs or shorts? Every chart is filtered by account and date range and reads straight from your trades.</p><ul><li>Equity curve and drawdown</li><li>P&amp;L by weekday, hour, symbol, setup and tag</li><li>R-multiple distribution, streaks, payoff ratio</li></ul></div></div>
+  <div class="lp-row"><div><h3>A calendar of your results</h3></div><div><p>See every trading day at a glance, with weekly totals. Open a day to review its trades and jump straight into that day's journal entry.</p></div></div>
+  <div class="lp-row"><div><h3>Journal and discipline</h3></div><div><p>Write a plan before the session and a review after it. Set daily loss, trade count and losing-streak limits and see today's progress against them as you trade.</p></div></div>
+  <div class="lp-row"><div><h3>Built for MetaTrader users</h3></div><div><p>Each account gets its own API key. The JPX Sync Expert Advisor sends closed positions with exact UTC times, commission and swap. Multiple accounts and prop-firm challenges are tracked separately.</p></div></div>
+  <div class="lp-row"><div><h3>Your data stays yours</h3></div><div><p>Passwords are hashed with scrypt, sessions use HttpOnly cookies, and you can export every trade as CSV or delete your account whenever you like.</p></div></div>
+</section>
+
+<section class="lp-final"><h2>Open your journal and log the first trade.</h2><div class="lp-cta"><a class="btn primary" href="/register">Create account</a><a class="btn" href="/login">Sign in</a></div></section>
+</main>
+<footer class="lp-foot"><span>© JPX Traders</span><span>Trading involves risk. JPX Traders is a journaling tool and does not provide financial advice.</span></footer>
+<script src="/calc.js"></script>
+<script src="/landing.js"></script>
+</body>
+</html>

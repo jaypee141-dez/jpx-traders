@@ -1,0 +1,27 @@
+.lp-nav{display:flex;align-items:center;gap:8px;max-width:1180px;margin:0 auto;padding:18px 24px}
+.lp-nav .brand{margin-right:auto;color:var(--ink)}
+.lp-hero{max-width:1180px;margin:0 auto;padding:56px 24px 72px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:64px;align-items:center}
+.lp-hero h1{font-size:clamp(38px,5.4vw,66px);line-height:1.02;letter-spacing:-.045em;font-weight:800;max-width:13ch}
+.lp-hero p.lead{font-size:18px;color:var(--muted);max-width:46ch;margin-top:22px}
+.lp-cta{display:flex;gap:12px;margin-top:30px;flex-wrap:wrap}
+.lp-cta .btn{min-height:48px;padding:0 24px;font-size:15px}
+.lp-calc{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:26px;box-shadow:var(--shadow)}
+.lp-calc h2{font-size:18px;margin-bottom:4px}
+.lp-calc .sub{color:var(--muted);font-size:13.5px;margin-bottom:18px}
+.lp-band{background:var(--rail);color:#fff}
+.lp-band .in{max-width:1180px;margin:0 auto;padding:72px 24px}
+.lp-band h2{font-size:clamp(26px,3.4vw,40px);letter-spacing:-.035em;max-width:22ch}
+.lp-feat{max-width:1180px;margin:0 auto;padding:24px 24px 8px}
+.lp-row{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:56px;padding:44px 0;border-top:1px solid var(--line)}
+.lp-row:first-child{border-top:0}
+.lp-row h3{font-size:24px;letter-spacing:-.03em}
+.lp-row p{color:var(--muted);max-width:60ch}
+.lp-row ul{margin:12px 0 0;padding-left:18px;color:var(--muted)}
+.lp-row li{margin:4px 0}
+.lp-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:40px;margin-top:40px}
+.lp-steps b{display:block;font-size:17px;margin-bottom:6px}
+.lp-steps p{color:var(--rail-ink)}
+.lp-final{max-width:1180px;margin:0 auto;padding:80px 24px;text-align:left}
+.lp-final h2{font-size:clamp(28px,4vw,46px);letter-spacing:-.04em;max-width:18ch}
+.lp-foot{border-top:1px solid var(--line);padding:26px 24px;max-width:1180px;margin:0 auto;display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap;color:var(--muted);font-size:14px}
+@media(max-width:880px){.lp-hero{grid-template-columns:1fr;gap:40px;padding-top:32px}.lp-row{grid-template-columns:1fr;gap:12px}.lp-steps{grid-template-columns:1fr;gap:24px}}
