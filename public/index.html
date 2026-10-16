@@ -5,55 +5,266 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>JPX Traders · Trading journal and analytics</title>
 <meta name="description" content="A trading journal that imports your MT4/MT5 history, syncs live from MetaTrader 5, and shows which setups, symbols and habits make or lose you money.">
-<meta name="theme-color" content="#141b3a">
+<meta name="theme-color" content="#eef3ff">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/landing.css">
-<script src="/theme.js"></script>
+<script src="/lp-boot.js"></script>
 </head>
-<body>
-<header class="lp-nav"><a class="brand" href="/"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#3446d6"/><path d="M7 21l5-6 4 3 7-9" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="23" cy="9" r="2.4" fill="#2dd4a7"/></svg>JPX Traders</a><a class="btn ghost" href="/login">Sign in</a><a class="btn primary" href="/register">Create account</a></header>
-<main>
-<section class="lp-hero">
-  <div>
-    <h1>Know why you win. Fix why you lose.</h1>
-    <p class="lead">JPX Traders turns your trade history into a clear picture of what is working: by setup, symbol, hour and mood. Import from MetaTrader or sync every closed trade live.</p>
-    <div class="lp-cta"><a class="btn primary" href="/register">Start your journal</a><a class="btn" href="#how">See how it works</a></div>
-  </div>
-  <div class="lp-calc calc" id="lp-calc">
-    <div><h2>Size your next trade</h2><div class="sub">The same calculator is built into the app. Try it with your own numbers.</div></div>
-    <div class="field"><label for="k-preset">Instrument</label><select class="input" id="k-preset"></select></div>
-    <div class="form-grid">
-      <div class="field"><label for="k-bal">Account balance</label><input class="input" id="k-bal" type="number" step="any" inputmode="decimal" value="10000"></div>
-      <div class="field"><label for="k-risk">Risk per trade (%)</label><input class="input" id="k-risk" type="number" step="any" inputmode="decimal" value="1"></div>
-      <div class="field"><label for="k-entry">Entry</label><input class="input" id="k-entry" type="number" step="any" inputmode="decimal" value="1.0850"></div>
-      <div class="field"><label for="k-stop">Stop loss</label><input class="input" id="k-stop" type="number" step="any" inputmode="decimal" value="1.0820"></div>
-      <div class="field full"><label for="k-target">Target (optional)</label><input class="input" id="k-target" type="number" step="any" inputmode="decimal" value="1.0910"></div>
-      <div class="field" id="k-cs-wrap" hidden><label for="k-cs">Units per lot</label><input class="input" id="k-cs" type="number" step="any" value="100000"></div>
+<body class="lp">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-journal" viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1 1"/><path d="M14 10a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1-1"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M5 20V11M12 20V4M19 20v-6"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 15v2"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.3"/></symbol>
+  <symbol id="i-trend" viewBox="0 0 24 24"><path d="M3 17l5-5 4 4 8-9"/><path d="M15 7h5v5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m6 12 4 4 8-9"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><path d="M10 7h5a3 3 0 0 1 3 3v4M14 17H9a3 3 0 0 1-3-3v-4"/></symbol>
+  <symbol id="i-support" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="m5.6 5.6 3.9 3.9M14.5 14.5l3.9 3.9M18.4 5.6l-3.9 3.9M9.5 14.5l-3.9 3.9"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+</defs></svg>
+<div class="lp-progress" id="lp-progress" aria-hidden="true"></div>
+
+<header class="lp-head" id="lp-head">
+  <div class="lp-wrap lp-nav">
+    <a class="lp-logo" href="#top" aria-label="JPX Traders home"><span class="jpx">JPX</span><span class="brand-sub">TRADERS</span></a>
+    <nav class="lp-links" id="lp-links" aria-label="Sections">
+      <a href="#top" class="on">Home</a><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="#about">About</a><a href="#contact">Contact</a>
+    </nav>
+    <div class="lp-actions">
+      <a class="btn pill outline" href="/login">Sign in</a>
+      <a class="btn pill grad" href="/register">Start trading</a>
+      <button class="lp-burger" id="lp-burger" aria-label="Open menu" aria-expanded="false" aria-controls="lp-links"><span></span><span></span><span></span></button>
     </div>
-    <div id="k-out" class="calc-out" aria-live="polite"></div>
   </div>
-</section>
+</header>
 
-<section class="lp-band" id="how"><div class="in"><h2>From broker history to a clear review in three steps</h2>
-  <div class="lp-steps">
-    <div><b>1. Bring trades in</b><p>Live sync from MetaTrader 5 with an Expert Advisor, a CSV import from MT4 or MT5, or log trades by hand for any market.</p></div>
-    <div><b>2. Add context</b><p>Tag the setup, rate your execution, record the amount risked and what you were feeling. Takes seconds per trade.</p></div>
-    <div><b>3. Read the numbers</b><p>Profit factor, expectancy, drawdown, R-multiples and breakdowns by hour, weekday, symbol and setup, all computed from your own trades.</p></div>
-  </div></div></section>
+<main id="top">
+  <!-- HERO -->
+  <section class="lp-hero">
+    <div class="lp-blob b1" aria-hidden="true" data-par="0.12"></div><div class="lp-blob b2" aria-hidden="true" data-par="0.2"></div>
+    <div class="lp-wrap lp-hero-in">
+      <div class="lp-hero-copy">
+        <span class="lp-chip" data-reveal>Trade smarter <i></i> Grow faster</span>
+        <h1 data-reveal style="--i:1">Precision Trading<br>for <em>Modern Markets</em></h1>
+        <p class="lead" data-reveal style="--i:2">Follow top traders, copy their strategies, and grow your portfolio with JPX Traders. Designed for today's traders, built for your financial freedom.</p>
+        <div class="lp-cta" data-reveal style="--i:3">
+          <a class="btn pill grad lg" href="/register">Start Trading <svg class="ico"><use href="#i-arrow"/></svg></a>
+          <button class="btn pill outline lg" id="demo-open" type="button"><span class="play"><svg class="ico"><use href="#i-play"/></svg></span>Watch Demo</button>
+        </div>
+        <div class="lp-people" data-reveal style="--i:4"><span class="stack" id="people-stack" aria-hidden="true"></span><span><b id="people-count">10,000+</b><small id="people-label">Active Traders Worldwide</small></span></div>
+      </div>
+      <div class="lp-visual" aria-hidden="true" data-par="-0.05">
+        <div class="prism">
+          <div class="slab s3"></div><div class="slab s2"></div>
+          <div class="slab s1"><div class="candles">
+            <b style="--h:34%;--d:0s" class="up"></b><b style="--h:52%;--d:.3s" class="dn"></b><b style="--h:44%;--d:.6s" class="up"></b><b style="--h:70%;--d:.9s" class="up"></b><b style="--h:58%;--d:1.2s" class="dn"></b><b style="--h:82%;--d:1.5s" class="up"></b><b style="--h:64%;--d:1.8s" class="dn"></b><b style="--h:92%;--d:2.1s" class="up"></b>
+          </div></div>
+          <div class="floor"></div>
+        </div>
+        <div class="fcard fc1"><span class="tile"><svg class="ico"><use href="#i-copy"/></svg></span><div><b>Copy Trading</b><span>Follow top traders and copy their trades automatically.</span></div></div>
+        <div class="fcard fc2"><span class="tile"><svg class="ico"><use href="#i-journal"/></svg></span><div><b>Trading Journal</b><span>Record, analyze and improve your performance.</span></div></div>
+      </div>
+    </div>
+  </section>
 
-<section class="lp-feat">
-  <div class="lp-row"><div><h3>Analytics that answer questions</h3></div><div><p>Which setup actually makes money? Do you lose more on Fridays? Is your edge in longs or shorts? Every chart is filtered by account and date range and reads straight from your trades.</p><ul><li>Equity curve and drawdown</li><li>P&amp;L by weekday, hour, symbol, setup and tag</li><li>R-multiple distribution, streaks, payoff ratio</li></ul></div></div>
-  <div class="lp-row"><div><h3>A calendar of your results</h3></div><div><p>See every trading day at a glance, with weekly totals. Open a day to review its trades and jump straight into that day's journal entry.</p></div></div>
-  <div class="lp-row"><div><h3>Journal and discipline</h3></div><div><p>Write a plan before the session and a review after it. Set daily loss, trade count and losing-streak limits and see today's progress against them as you trade.</p></div></div>
-  <div class="lp-row"><div><h3>Built for MetaTrader users</h3></div><div><p>Each account gets its own API key. The JPX Sync Expert Advisor sends closed positions with exact UTC times, commission and swap. Multiple accounts and prop-firm challenges are tracked separately.</p></div></div>
-  <div class="lp-row"><div><h3>Your data stays yours</h3></div><div><p>Passwords are hashed with scrypt, sessions use HttpOnly cookies, and you can export every trade as CSV or delete your account whenever you like.</p></div></div>
-</section>
+  <!-- FEATURE STRIP -->
+  <section class="lp-strip-sec" id="features">
+    <div class="lp-wrap">
+      <div class="lp-strip" data-reveal>
+        <div class="f"><span class="tile"><svg class="ico"><use href="#i-copy"/></svg></span><b>Copy Trading</b><p>Automatically copy trades from top-performing traders.</p></div>
+        <div class="f"><span class="tile"><svg class="ico"><use href="#i-link"/></svg></span><b>MT4 / MT5 Support</b><p>Seamless integration with industry-leading platforms.</p></div>
+        <div class="f"><span class="tile"><svg class="ico"><use href="#i-chart"/></svg></span><b>Advanced Analytics</b><p>Track performance with real-time insights and reports.</p></div>
+        <div class="f"><span class="tile"><svg class="ico"><use href="#i-journal"/></svg></span><b>Trading Journal</b><p>Record trades, analyze patterns and improve.</p></div>
+        <div class="f"><span class="tile"><svg class="ico"><use href="#i-shield"/></svg></span><b>Secure &amp; Reliable</b><p>Your data and funds are always protected.</p></div>
+        <div class="f"><span class="tile"><svg class="ico"><use href="#i-cal"/></svg></span><b>Trade Recording</b><p>Auto-sync trades and keep a full trading history.</p></div>
+      </div>
+    </div>
+  </section>
 
-<section class="lp-final"><h2>Open your journal and log the first trade.</h2><div class="lp-cta"><a class="btn primary" href="/register">Create account</a><a class="btn" href="/login">Sign in</a></div></section>
+  <!-- SHOWCASE -->
+  <section class="lp-sec" id="showcase">
+    <div class="lp-wrap lp-split">
+      <div class="lp-text">
+        <span class="lp-chip sm" data-reveal>The JPX advantage</span>
+        <h2 data-reveal style="--i:1">Everything You Need in One Powerful Platform</h2>
+        <p class="sub" data-reveal style="--i:2">JPX Traders gives you the tools, insights, and technology to trade smarter. Whether you're a beginner or an experienced trader, our platform is built to help you succeed.</p>
+        <ul class="lp-checks" data-reveal style="--i:3">
+          <li><i><svg class="ico"><use href="#i-check"/></svg></i>Real-time trade copying</li>
+          <li><i><svg class="ico"><use href="#i-check"/></svg></i>MT4/MT5 integration</li>
+          <li><i><svg class="ico"><use href="#i-check"/></svg></i>Advanced analytics &amp; market insights</li>
+          <li><i><svg class="ico"><use href="#i-check"/></svg></i>Trading journal &amp; performance tracking</li>
+          <li><i><svg class="ico"><use href="#i-check"/></svg></i>24/7 customer support</li>
+        </ul>
+        <button class="btn pill grad" type="button" id="demo-open2" data-reveal style="--i:4">Explore Features <svg class="ico"><use href="#i-arrow"/></svg></button>
+      </div>
+      <div class="lp-devices" data-reveal>
+        <div class="laptop"><div class="screen"><img src="/img/demo-dash.jpg" width="1280" height="800" alt="JPX Traders dashboard showing net P&amp;L, equity curve and key statistics" loading="lazy"></div><div class="base"></div></div>
+        <div class="phone"><div class="notch"></div><img src="/img/app-calendar.jpg" width="780" height="1560" alt="JPX Traders performance calendar on a phone" loading="lazy"></div>
+        <p class="cap">Screenshots show sample data.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW -->
+  <section class="lp-sec tight" id="how">
+    <div class="lp-wrap">
+      <div class="lp-how glass" data-reveal>
+        <div class="lp-text">
+          <h2>HOW JPX TRADERS WORKS</h2>
+          <p class="sub">Get started in minutes and take your trading to the next level.</p>
+        </div>
+        <ol class="lp-steps">
+          <li><span class="num">1</span><span class="tile"><svg class="ico"><use href="#i-link"/></svg></span><b>Connect Broker</b><p>Link your MT4/MT5 account securely.</p></li>
+          <li><span class="num">2</span><span class="tile"><svg class="ico"><use href="#i-copy"/></svg></span><b>Copy Trades</b><p>Follow top traders and copy their trades.</p></li>
+          <li><span class="num">3</span><span class="tile"><svg class="ico"><use href="#i-journal"/></svg></span><b>Record Trades</b><p>Track your trades, notes and performance.</p></li>
+          <li><span class="num">4</span><span class="tile"><svg class="ico"><use href="#i-trend"/></svg></span><b>Analyze &amp; Improve</b><p>Get insights and improve your performance.</p></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- LEADERBOARD -->
+  <section class="lp-sec" id="leaderboard">
+    <div class="lp-wrap">
+      <div class="lp-board glass" data-reveal>
+        <div class="lp-board-head"><div><span class="lp-chip sm">Top traders</span><h2>Leaderboard</h2><p class="sub">Live results from traders sharing their strategy. Ranked by 30-day return.</p></div><a class="btn pill grad" href="/register">Start copying <svg class="ico"><use href="#i-arrow"/></svg></a></div>
+        <div id="board"><div class="spin"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CALCULATOR -->
+  <section class="lp-sec" id="calculator">
+    <div class="lp-wrap lp-split rev">
+      <div class="lp-text">
+        <span class="lp-chip sm" data-reveal>Free tool</span>
+        <h2 data-reveal style="--i:1">Size Every Trade Before You Take It</h2>
+        <p class="sub" data-reveal style="--i:2">The same position size calculator is built into the app. Enter your balance, how much you are willing to lose, and where your stop sits.</p>
+        <ul class="lp-checks" data-reveal style="--i:3"><li><i><svg class="ico"><use href="#i-check"/></svg></i>Forex, JPY pairs, gold and index CFDs</li><li><i><svg class="ico"><use href="#i-check"/></svg></i>Reward and reward-to-risk with a target</li><li><i><svg class="ico"><use href="#i-check"/></svg></i>Runs entirely in your browser</li></ul>
+      </div>
+      <div class="glass lp-calc calc" id="lp-calc" data-reveal>
+        <div class="field"><label for="k-preset">Instrument</label><select class="input" id="k-preset"></select></div>
+        <div class="form-grid">
+          <div class="field"><label for="k-bal">Account balance</label><input class="input" id="k-bal" type="number" step="any" inputmode="decimal" value="10000"></div>
+          <div class="field"><label for="k-risk">Risk per trade (%)</label><input class="input" id="k-risk" type="number" step="any" inputmode="decimal" value="1"></div>
+          <div class="field"><label for="k-entry">Entry</label><input class="input" id="k-entry" type="number" step="any" inputmode="decimal" value="1.0850"></div>
+          <div class="field"><label for="k-stop">Stop loss</label><input class="input" id="k-stop" type="number" step="any" inputmode="decimal" value="1.0820"></div>
+          <div class="field full"><label for="k-target">Target (optional)</label><input class="input" id="k-target" type="number" step="any" inputmode="decimal" value="1.0910"></div>
+          <div class="field" id="k-cs-wrap" hidden><label for="k-cs">Units per lot</label><input class="input" id="k-cs" type="number" step="any" value="100000"></div>
+        </div>
+        <div id="k-out" class="calc-out" aria-live="polite"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="lp-sec" id="pricing">
+    <div class="lp-wrap lp-split pricing">
+      <div class="lp-text">
+        <span class="lp-chip sm" data-reveal>Pricing plans</span>
+        <h2 data-reveal style="--i:1">Choose the Plan That Fits Your Trading Goals</h2>
+        <p class="sub" data-reveal style="--i:2">Get full access to copy trading, MT4/MT5, trading journal, analytics and more. Upgrade anytime. <b id="trial-note"></b></p>
+        <div class="lp-toggle" role="group" aria-label="Billing period" data-reveal style="--i:3"><button id="bill-m" aria-pressed="true">Monthly</button><button id="bill-y" aria-pressed="false">Yearly <span>2 months free</span></button></div>
+      </div>
+      <div class="lp-plans" id="plans"></div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section class="lp-sec" id="testimonials">
+    <div class="lp-wrap lp-split quotes-row">
+      <div class="lp-text">
+        <span class="lp-chip sm" data-reveal>Traders love JPX</span>
+        <h2 data-reveal style="--i:1">What Our Users Say</h2>
+        <p class="sub" data-reveal style="--i:2" id="reviews-intro">Join thousands of traders who are already growing with JPX.</p>
+      </div>
+      <div class="lp-carousel" data-reveal>
+        <button class="car-btn prev" id="car-prev" aria-label="Previous reviews"><svg class="ico"><use href="#i-left"/></svg></button>
+        <div class="lp-quotes" id="quotes" tabindex="0" aria-label="Customer reviews"></div>
+        <button class="car-btn next" id="car-next" aria-label="Next reviews"><svg class="ico"><use href="#i-right"/></svg></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="lp-sec" id="faq">
+    <div class="lp-wrap lp-split faq-row">
+      <div class="lp-text">
+        <span class="lp-chip sm" data-reveal>Frequently asked questions</span>
+        <h2 data-reveal style="--i:1">Got Questions?</h2>
+        <p class="sub" data-reveal style="--i:2">Quick answers to the most common questions.</p>
+      </div>
+      <div class="lp-faq" data-reveal>
+        <details><summary>Is JPX Traders safe and secure?</summary><p>Your journal is only visible to your account. Passwords are hashed, sessions use secure cookies, JPX never asks for your broker password, and you can export or delete your data at any time.</p></details>
+        <details><summary>Which platforms are supported (MT4/MT5)?</summary><p>Live sync and copy execution run through MetaTrader 5 with the JPX Expert Advisors. MT4 and MT5 history can be imported as CSV. Other brokers and markets can be logged manually.</p></details>
+        <details><summary>How does copy trading work?</summary><p>Pick a trader on the leaderboard and choose the account to copy into. Their trades are mirrored into your journal in proportion to your balance, or at a fixed multiplier. With the JPX Copy Expert Advisor on MT5 the same trades are opened and closed at your broker. Copy trading carries risk; you stay in control and can pause or stop at any time.</p></details>
+        <details><summary>Can I use multiple accounts?</summary><p>Yes. Pro supports up to 5 accounts and Elite up to 25. Track live accounts, demos and prop-firm challenges separately or together.</p></details>
+        <details><summary>What payment methods do you accept?</summary><p>Plans are billed by card through our payment provider. Every new account starts with a 14-day Pro trial and no card is needed to begin.</p></details>
+        <details><summary>Is JPX Traders financial advice?</summary><p>No. JPX Traders is a journaling and copy-trading tool. Leaders are independent traders, not advisers. Trading involves risk and past results do not predict future results.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section class="lp-sec tight" id="about">
+    <div class="lp-wrap lp-split">
+      <div class="lp-text"><span class="lp-chip sm" data-reveal>About</span><h2 data-reveal style="--i:1">Built Around One Idea</h2></div>
+      <div data-reveal><p class="lp-big">You can't improve what you don't measure. JPX Traders exists to turn a messy trade history into answers you can act on.</p><p class="sub" style="margin-top:14px;max-width:62ch">Most traders know their total profit and little else. This tool makes the next layer visible: which setups pay, which hours hurt, and how closely you follow your own rules. The numbers always come from your real trades.</p></div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="lp-sec" id="contact">
+    <div class="lp-wrap lp-split contact">
+      <div class="lp-text"><span class="lp-chip sm" data-reveal>Contact</span><h2 data-reveal style="--i:1">Talk to Us</h2><p class="sub" data-reveal style="--i:2">Questions about pricing, MT5 sync or anything else? Send a message and we will reply by email.</p></div>
+      <form class="glass lp-form" id="contact-form" novalidate data-reveal>
+        <div class="form-grid">
+          <div class="field"><label for="c-name">Name</label><input class="input" id="c-name" name="name" maxlength="80" autocomplete="name" required></div>
+          <div class="field"><label for="c-email">Email</label><input class="input" id="c-email" name="email" type="email" maxlength="200" autocomplete="email" required></div>
+          <div class="field full"><label for="c-msg">Message</label><textarea class="input" id="c-msg" name="message" maxlength="4000" required></textarea></div>
+          <div class="sr" aria-hidden="true"><label>Leave empty<input name="website" tabindex="-1" autocomplete="off"></label></div>
+          <div class="form-error full" id="c-err" hidden role="alert"></div>
+          <div class="full"><button class="btn pill grad" type="submit" id="c-send">Send message</button></div>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="lp-cta-sec">
+    <div class="lp-wrap"><div class="lp-banner" data-reveal>
+      <div><h2>Ready to Trade Smarter?</h2><p>Join JPX Traders today and start copying top traders, gaining insights, and growing your portfolio.</p></div>
+      <div class="act"><a class="btn pill white lg" href="/register">Get Started Now <svg class="ico"><use href="#i-arrow"/></svg></a><span class="note"><svg class="ico"><use href="#i-lock"/></svg>No credit card required</span></div>
+    </div></div>
+  </section>
 </main>
-<footer class="lp-foot"><span>© JPX Traders</span><span>Trading involves risk. JPX Traders is a journaling tool and does not provide financial advice.</span></footer>
+
+<footer class="lp-foot">
+  <div class="lp-wrap lp-foot-in">
+    <a class="lp-logo" href="#top"><span class="jpx">JPX</span><span class="brand-sub">TRADERS</span></a>
+    <nav aria-label="Footer"><a href="#top">Home</a><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="#about">About</a><a href="#contact">Contact</a></nav>
+    <span class="social" id="social"></span><span class="copy">© <span id="yr"></span> JPX Traders. All rights reserved.</span>
+  </div>
+  <div class="lp-wrap lp-legal">Trading involves risk. JPX Traders is a journaling tool and does not provide financial advice.</div>
+</footer>
+
+<div class="demo" id="demo" hidden role="dialog" aria-modal="true" aria-label="JPX Traders product tour">
+  <div class="demo-box">
+    <button class="demo-x" id="demo-x" aria-label="Close tour"><svg class="ico"><use href="#i-x"/></svg></button>
+    <div class="demo-screen"><img id="demo-img" alt=""><div class="demo-bar"><i id="demo-prog"></i></div></div>
+    <div class="demo-foot"><div><b id="demo-title"></b><p id="demo-cap"></p></div><div class="demo-nav"><button class="car-btn static" id="demo-prev" aria-label="Previous"><svg class="ico"><use href="#i-left"/></svg></button><span id="demo-dots"></span><button class="car-btn static" id="demo-next" aria-label="Next"><svg class="ico"><use href="#i-right"/></svg></button></div></div>
+    <p class="demo-note">Screens show sample data.</p>
+  </div>
+</div>
 <script src="/calc.js"></script>
 <script src="/landing.js"></script>
 </body>

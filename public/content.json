@@ -1,0 +1,30 @@
+{
+  "social": {
+    "telegram": "",
+    "x": "",
+    "youtube": "",
+    "discord": ""
+  },
+  "sample_reviews": [
+    {
+      "quote": "Sample text. The copy trading feature is amazing and super easy to use!",
+      "name": "Sample reviewer",
+      "role": "Forex Trader"
+    },
+    {
+      "quote": "Sample text. The platform is smooth and reliable, and the support team is always there when I need help.",
+      "name": "Sample reviewer",
+      "role": "Crypto Trader"
+    },
+    {
+      "quote": "Sample text. I have been using JPX for months and my results have been incredible.",
+      "name": "Sample reviewer",
+      "role": "Day Trader"
+    },
+    {
+      "quote": "Sample text. Simple, powerful and effective. JPX Traders makes trading accessible for everyone.",
+      "name": "Sample reviewer",
+      "role": "Swing Trader"
+    }
+  ]
+}

@@ -5,11 +5,11 @@
   var app = document.getElementById('app');
 
   var NAV = [
-    { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' }, { id: 'trades', label: 'Trades', icon: 'trades' }, { id: 'calendar', label: 'Calendar', icon: 'calendar' },
+    { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' }, { id: 'trades', label: 'Trades', icon: 'trades' }, { id: 'copy', label: 'Copy trading', icon: 'copytrade' }, { id: 'calendar', label: 'Calendar', icon: 'calendar' },
     { id: 'journal', label: 'Journal', icon: 'journal' }, { id: 'analytics', label: 'Analytics', icon: 'analytics' }, { id: 'risk', label: 'Risk', icon: 'risk' },
   ];
-  var MANAGE = [{ id: 'brokers', label: 'Brokers', icon: 'brokers' }, { id: 'settings', label: 'Settings', icon: 'settings' }];
-  var TITLES = { dashboard: 'Dashboard', trades: 'Trades', calendar: 'Calendar', journal: 'Journal', analytics: 'Analytics', risk: 'Risk', brokers: 'Brokers', settings: 'Settings', admin: 'Admin' };
+  var MANAGE = [{ id: 'brokers', label: 'Brokers', icon: 'brokers' }, { id: 'billing', label: 'Billing', icon: 'billing' }, { id: 'support', label: 'Support', icon: 'support' }, { id: 'settings', label: 'Settings', icon: 'settings' }];
+  var TITLES = { dashboard: 'Dashboard', trades: 'Trades', copy: 'Copy trading', billing: 'Billing', support: 'Support', calendar: 'Calendar', journal: 'Journal', analytics: 'Analytics', risk: 'Risk', brokers: 'Brokers', settings: 'Settings', admin: 'Admin' };
 
   /* ---------- auth ---------- */
   function showAuth(mode) {
@@ -49,10 +49,10 @@
     app.innerHTML = '<div class="shell"><aside class="rail"><a class="brand" href="#/dashboard">' + JPX.logo() + 'JPX Traders</a><nav aria-label="Main">' + NAV.map(link).join('') + '<div class="group">Manage</div>' + MANAGE.map(link).join('') + (u.role === 'admin' ? link({ id: 'admin', label: 'Admin', icon: 'admin' }) : '') + '</nav><div class="spacer"></div>' +
       '<div class="me"><div class="avatar" aria-hidden="true">' + esc(u.name.trim().charAt(0).toUpperCase()) + '</div><div class="who"><b>' + esc(u.name) + '</b><span>' + esc(u.email) + '</span></div><button class="btn ghost icon sm" id="sign-out" aria-label="Sign out" style="color:#fff;margin-left:auto">' + JPX.icon('logout') + '</button></div></aside>' +
       '<main class="main" id="view" tabindex="-1"></main></div>' +
-      '<nav class="tabbar" aria-label="Primary">' + ['dashboard', 'trades', 'calendar', 'analytics'].map(function (id) { var n = items.filter(function (i) { return i.id === id; })[0]; return '<a href="#/' + id + '" data-nav="' + id + '"' + (id === cur ? ' aria-current="page"' : '') + '>' + JPX.icon(n.icon) + n.label + '</a>'; }).join('') + '<button id="more-btn" aria-haspopup="dialog">' + JPX.icon('more') + 'More</button></nav>';
+      '<nav class="tabbar" aria-label="Primary">' + ['dashboard', 'trades', 'copy', 'analytics'].map(function (id) { var n = items.filter(function (i) { return i.id === id; })[0]; return '<a href="#/' + id + '" data-nav="' + id + '"' + (id === cur ? ' aria-current="page"' : '') + '>' + JPX.icon(n.icon) + (id === 'copy' ? 'Copy' : n.label) + '</a>'; }).join('') + '<button id="more-btn" aria-haspopup="dialog">' + JPX.icon('more') + 'More</button></nav>';
     $('#sign-out').addEventListener('click', signOut);
     $('#more-btn').addEventListener('click', function () {
-      var rest = items.filter(function (i) { return ['dashboard', 'trades', 'calendar', 'analytics'].indexOf(i.id) < 0; });
+      var rest = items.filter(function (i) { return ['dashboard', 'trades', 'copy', 'analytics'].indexOf(i.id) < 0; });
       var dark = document.documentElement.dataset.theme === 'dark';
       JPX.modal({ title: 'More', sheet: true, body: '<div class="sheet-list" style="margin:-12px -12px -12px">' + rest.map(function (i) { return '<a href="#/' + i.id + '">' + JPX.icon(i.icon) + i.label + '</a>'; }).join('') + '<a href="#" id="m-theme">' + JPX.icon(dark ? 'sun' : 'moon') + (dark ? 'Light mode' : 'Dark mode') + '</a><a href="#" id="m-out">' + JPX.icon('logout') + 'Sign out</a></div>',
         onMount: function (d) { $$('a[href^="#/"]', d).forEach(function (a) { a.addEventListener('click', function () { d.close2(); }); }); $('#m-theme', d).addEventListener('click', function (e) { e.preventDefault(); window.JPXTheme.set(dark ? 'light' : 'dark'); d.close2(); }); $('#m-out', d).addEventListener('click', function (e) { e.preventDefault(); d.close2(); signOut(); }); } });

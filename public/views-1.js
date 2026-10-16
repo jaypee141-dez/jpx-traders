@@ -72,7 +72,7 @@
         var days = an.daily.slice(-30);
         C.bars($('#daily', root), days.map(function (d) { return { label: d.date.slice(5), value: d.net, tip: money(d.net, { sign: true }), sub: JPX.fmtDay(d.date) + ' · ' + d.trades + ' trade' + (d.trades === 1 ? '' : 's') }; }));
         var syms = an.bySymbol.slice(0, 3).concat(an.bySymbol.length > 5 ? an.bySymbol.slice(-2) : an.bySymbol.slice(3));
-        C.hbars($('#syms', root), syms.map(function (b) { return { label: b.key, value: b.net, text: money(b.net, { sign: true }), sub: b.trades + ' trades · ' + b.winRate + '% win' }; }));
+        if (an.locked) $('#syms', root).innerHTML = '<p class="muted">Symbol breakdowns are part of Pro. <a href="#/billing">View plans</a></p>'; else C.hbars($('#syms', root), syms.map(function (b) { return { label: b.key, value: b.net, text: money(b.net, { sign: true }), sub: b.trades + ' trades · ' + b.winRate + '% win' }; }));
       });
     });
   };

@@ -26,6 +26,7 @@
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
     moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>', logout: '<path d="M9 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4M16 8l4 4-4 4M20 12H9"/>',
     more: '<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>', copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/>',
+    copytrade: '<circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><path d="M10 7h5a3 3 0 0 1 3 3v4M14 17H9a3 3 0 0 1-3-3v-4"/>', billing: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18M7 15h4"/>', support: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="m5.6 5.6 3.9 3.9M14.5 14.5l3.9 3.9M18.4 5.6l-3.9 3.9M9.5 14.5l-3.9 3.9"/>', lock: '<rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
     search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>', check: '<path d="m5 12 5 5 9-10"/>', edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>', key: '<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M16 7l3 3"/>',
   };
   JPX.icon = function (n, cls) { return '<svg class="ico ' + (cls || '') + '" viewBox="0 0 24 24" aria-hidden="true">' + (ICONS[n] || '') + '</svg>'; };
@@ -76,6 +77,7 @@
       return (ct.indexOf('json') > -1 ? r.json() : r.text()).then(function (data) {
         if (!r.ok) {
           var err = new Error((data && data.error) || 'Request failed (' + r.status + ')'); err.status = r.status;
+          if (r.status === 402) { err.upgrade = true; JPX.upgradePrompt(err.message); }
           if (r.status === 401 && url.indexOf('/api/auth/') !== 0 && S.user) { S.user = null; if (JPX.onSignedOut) JPX.onSignedOut(); }
           throw err;
         }
@@ -90,8 +92,17 @@
     var s = p.toString(); return s ? '?' + s : '';
   };
 
+  /* ---------- upgrade prompt (plan limits) ---------- */
+  var lastUp = '';
+  JPX.upgradePrompt = function (msg) {
+    lastUp = msg;
+    JPX.modal({ title: 'Upgrade your plan', size: 'narrow', body: '<p class="muted">' + esc(msg) + '</p>', foot: '<button class="btn" data-close>Not now</button><button class="btn primary" id="up-go">View plans</button>',
+      onMount: function (d) { JPX.$('#up-go', d).addEventListener('click', function () { d.close2(); location.hash = '#/billing'; }); } });
+  };
+
   /* ---------- toast ---------- */
   JPX.toast = function (msg, kind) {
+    if (kind === 'err' && msg === lastUp) return;
     var box = JPX.$('.toasts'); if (!box) { box = document.createElement('div'); box.className = 'toasts'; box.setAttribute('role', 'status'); box.setAttribute('aria-live', 'polite'); document.body.appendChild(box); }
     var t = document.createElement('div'); t.className = 'toast' + (kind === 'err' ? ' err' : ''); t.textContent = msg; box.appendChild(t);
     setTimeout(function () { t.remove(); }, kind === 'err' ? 6000 : 3200);

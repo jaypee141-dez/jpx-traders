@@ -1,5 +1,6 @@
 // Integration test: boots the real server on a temp DB and exercises every API.
 process.env.JPX_DB = '/tmp/jpx-test.db';
+process.env.ADMIN_EMAIL = 'a@x.com';
 require('node:fs').rmSync('/tmp/jpx-test.db', { force: true });
 require('node:fs').rmSync('/tmp/jpx-test.db-wal', { force: true });
 require('node:fs').rmSync('/tmp/jpx-test.db-shm', { force: true });
@@ -30,7 +31,7 @@ server.listen(0, async () => {
     r = await anon.call('POST', '/api/auth/register', { name: 'A', email: 'bad', password: 'password1' }); ok(r.status === 400, 'bad email rejected');
     r = await anon.call('POST', '/api/auth/register', { name: 'A', email: 'a@x.com', password: 'short' }); ok(r.status === 400, 'short pw rejected');
     r = await A.call('POST', '/api/auth/register', { name: 'Alice', email: 'a@x.com', password: 'password1', timezone: 'America/New_York' });
-    ok(r.status === 200 && r.body.user.role === 'admin', 'first user is admin');
+    ok(r.status === 200 && r.body.user.role === 'admin', 'owner email becomes admin');
     ok(/HttpOnly/.test(r.headers.get('set-cookie')), 'cookie HttpOnly');
     r = await B.call('POST', '/api/auth/register', { name: 'Bob', email: 'b@x.com', password: 'password2' }); ok(r.body.user.role === 'user', 'second user is user');
     r = await anon.call('POST', '/api/auth/register', { name: 'Dup', email: 'A@X.com', password: 'password1' }); ok(r.status === 400, 'duplicate email (case-insens) rejected');
@@ -114,6 +115,14 @@ server.listen(0, async () => {
     r = await B.call('GET', '/api/me'); ok(r.body.user === null, 'suspended user session killed');
     r = await anon.call('POST', '/api/auth/login', { email: 'b@x.com', password: tmp }); ok(r.status === 403, 'suspended cannot login');
     r = await A.call('DELETE', `/api/admin/users/${bobId}`); ok(r.status === 200, 'admin delete user');
+
+    // Contact form
+    r = await anon.call('POST', '/api/contact', { name: 'Sam', email: 'sam@x.com', message: 'Do you support futures accounts?' }); ok(r.status === 200, 'contact message accepted');
+    r = await anon.call('POST', '/api/contact', { name: 'Sam', email: 'nope', message: 'Do you support futures accounts?' }); ok(r.status === 400, 'contact validates email');
+    r = await anon.call('POST', '/api/contact', { name: 'Bot', email: 'b@x.com', message: 'spam spam spam spam', website: 'x' }); ok(r.status === 200, 'honeypot silently accepted');
+    r = await A.call('GET', '/api/admin/messages'); ok(r.body.messages.length === 1 && r.body.messages[0].name === 'Sam', 'admin sees only the real message');
+    r = await B.call('GET', '/api/admin/messages'); ok(r.status === 401 || r.status === 403, 'non-admin cannot read messages');
+    r = await A.call('DELETE', `/api/admin/messages/${(await A.call('GET', '/api/admin/messages')).body.messages[0].id}`); ok(r.status === 200, 'admin deletes message');
 
     // Rate limit
     let last; for (let i = 0; i < 10; i++) last = await anon.call('POST', '/api/auth/login', { email: 'a@x.com', password: 'nope' + i });

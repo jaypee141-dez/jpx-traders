@@ -24,7 +24,7 @@ with sync_playwright() as p:
     pg.click('[data-import]'); pg.set_input_files('#imp-file', '/tmp/seed.csv'); pg.click('#imp-go'); pg.wait_for_selector('#imp-result .panel')
     txt = pg.inner_text('#imp-result'); print(txt); check('60 imported' in txt, '60 imported')
     pg.click('.modal-head [data-close]')
-    for name in ['dashboard', 'trades', 'calendar', 'journal', 'analytics', 'risk', 'brokers', 'settings', 'admin']:
+    for name in ['dashboard', 'trades', 'copy', 'calendar', 'journal', 'analytics', 'risk', 'brokers', 'billing', 'support', 'settings', 'admin']:
         pg.goto(BASE + '/app#/' + name); pg.wait_for_timeout(1000)
         check(pg.locator('.spin').count() == 0, name + ' finished loading')
         check('went wrong' not in pg.inner_text('#view'), name + ' no error')
@@ -52,10 +52,31 @@ with sync_playwright() as p:
     pg.goto(BASE + '/app#/settings'); pg.wait_for_selector('#theme-seg'); pg.click('#theme-seg [data-v=dark]'); pg.wait_for_timeout(300)
     pg.goto(BASE + '/app#/dashboard'); pg.wait_for_selector('.kpis'); pg.screenshot(path='/tmp/s-dark.png')
     pg.goto(BASE + '/app#/admin'); pg.wait_for_selector('[data-u]'); pg.click('[data-u]'); pg.wait_for_selector('#m-role'); pg.keyboard.press('Escape')
+    # ---- copy trading: publish a strategy, then see it on the leaderboard
+    pg.goto(BASE + '/app#/copy'); pg.wait_for_selector('#c-tabs'); pg.click('#c-tabs [data-v=strategy]'); pg.wait_for_selector('#sp')
+    pg.fill('#s-alias', 'HiroFX'); pg.fill('#s-bio', 'London breakouts'); pg.check('input[name=accept]'); pg.click('#sp button[type=submit]'); pg.wait_for_selector('#sp-stop')
+    pg.click('#c-tabs [data-v=leaderboard]'); pg.wait_for_selector('.tbl'); check('HiroFX' in pg.inner_text('#c-body') and pg.locator('text=You').count() > 0, 'own strategy on leaderboard marked "You"')
+    pg.screenshot(path='/tmp/s-copy.png', full_page=True)
+    # ---- billing: payments not configured -> opens a support ticket form
+    pg.goto(BASE + '/app#/billing'); pg.wait_for_selector('[data-plan]'); check('Pro' in pg.inner_text('#view') and 'trial' in pg.inner_text('#view').lower(), 'billing shows trial')
+    pg.click('[data-plan=elite]'); pg.wait_for_selector('#t-go'); check('elite' in pg.input_value('#t-sub').lower(), 'plan request prefilled'); pg.click('#t-go'); pg.wait_for_selector('.toast')
+    pg.goto(BASE + '/app#/support'); pg.wait_for_selector('[data-t]'); pg.click('[data-t]'); pg.wait_for_selector('#th-msg'); pg.fill('#th-msg', 'Any update?'); pg.click('#th-send'); pg.wait_for_timeout(500); check('Any update?' in pg.inner_text('#th-list'), 'ticket reply posted'); pg.keyboard.press('Escape')
+    pg.click('#rv-r [data-v="4"]'); pg.fill('#rv-q', 'Copy trading mirrors straight into my journal. Very handy.'); pg.fill('#rv-role', 'Forex trader'); pg.click('#rv button[type=submit]'); pg.wait_for_selector('.toast')
+    # ---- admin: sees ticket + review, approves it; landing page then shows it
+    pg.goto(BASE + '/app#/admin'); pg.wait_for_selector('[data-at]'); check(pg.locator('[data-at]').count() == 1, 'admin sees the ticket'); pg.click('[data-at]'); pg.wait_for_selector('#th-msg'); pg.fill('#th-msg', 'Payments will be enabled shortly.'); pg.click('#th-send'); pg.wait_for_timeout(500); pg.keyboard.press('Escape')
+    pg.wait_for_selector('[data-rv=approved]'); pg.click('[data-rv=approved]'); pg.wait_for_selector('.chip.pos >> text=approved')
+    lp = ctx.new_page(); lp.goto(BASE + '/'); lp.wait_for_selector('.quote'); check('Hiro T.' in lp.inner_text('#quotes') or 'Hiro' in lp.inner_text('#quotes'), 'approved review appears on landing page'); lp.screenshot(path='/tmp/s-landing-reviews.png'); lp.close()
+    pg.goto(BASE + '/app#/admin'); pg.wait_for_selector('#site-form'); pg.fill('#social_telegram', 'https://t.me/jpxtraders'); pg.fill('#social_youtube', 'https://youtube.com/@jpx'); pg.fill('#stat_number', '12,500+'); pg.click('#site-form button[type=submit]'); pg.wait_for_selector('.toast')
+    lp2 = ctx.new_page(); lp2.goto(BASE + '/'); lp2.wait_for_selector('.lp-foot .social a'); lp2.wait_for_timeout(500)
+    check(lp2.locator('.lp-foot .social a').count() == 2 and lp2.locator('.lp-foot .social span.off').count() == 2, 'footer shows 4 icons, 2 linked from admin settings')
+    check(lp2.inner_text('#people-count') == '12,500+', 'hero number editable from admin'); check('Join thousands of traders' in lp2.inner_text('#reviews-intro'), 'reviews line unchanged'); lp2.evaluate("document.querySelector('.lp-foot').scrollIntoView()"); lp2.wait_for_timeout(300); lp2.screenshot(path='/tmp/s-footer.png'); lp2.close()
+    # restore the design default so later checks see 10,000+
+    pg.fill('#stat_number', '10,000+'); pg.click('#site-form button[type=submit]'); pg.wait_for_selector('.toast')
+    pg.goto(BASE + '/app#/admin'); pg.wait_for_selector('[data-u]'); pg.click('[data-u]'); pg.wait_for_selector('#m-plan'); check(pg.input_value('#m-plan') == 'pro', 'admin modal shows plan'); pg.keyboard.press('Escape')
     m = b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2, is_mobile=True, has_touch=True); mp = m.new_page()
     mp.on('pageerror', lambda e: errs.append('MOBILE ' + str(e)))
     mp.goto(BASE + '/login'); mp.fill('#au-email', 'hiro@example.com'); mp.fill('#au-pw', 'supersecret1'); mp.click('button[type=submit]'); mp.wait_for_selector('.tabbar')
-    for name in ['dashboard', 'trades', 'calendar', 'analytics', 'risk', 'journal', 'brokers']:
+    for name in ['dashboard', 'trades', 'copy', 'calendar', 'analytics', 'risk', 'journal', 'brokers', 'billing', 'support']:
         mp.goto(BASE + '/app#/' + name); mp.wait_for_timeout(1000)
         ow = mp.evaluate('document.documentElement.scrollWidth - window.innerWidth'); check(ow <= 1, f'mobile {name} no horizontal overflow ({ow}px)')
         mp.screenshot(path=f'/tmp/m-{name}.png')

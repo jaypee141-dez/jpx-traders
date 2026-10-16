@@ -7,6 +7,8 @@ const { promisify } = require('node:util');
 const { q } = require('./lib/db');
 const { analyze, localParts } = require('./lib/analytics');
 const { parseTradeCSV, normalizeTrade, parseDT } = require('./lib/importer');
+const { PLANS, TRIAL_DAYS, effectivePlan, planInfo } = require('./lib/plans');
+const copy = require('./lib/copy');
 
 const scrypt = promisify(crypto.scrypt);
 const PORT = Number(process.env.PORT || 3000);
@@ -14,7 +16,8 @@ const HOST = process.env.HOST || '0.0.0.0';
 const PUBLIC = path.join(__dirname, 'public');
 const SESSION_MS = 30 * 24 * 3600 * 1000;
 const REGISTRATION_OPEN = process.env.REGISTRATION !== 'closed';
-const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || '').toLowerCase();
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'jpee49275@gmail.com').toLowerCase();
+q.run("UPDATE users SET role = 'admin' WHERE email = ? AND role != 'admin'", ADMIN_EMAIL); // the owner account is always an admin
 const COOKIE = 'jpx_sid';
 
 /* ------------------------------------------------------------------ helpers */
@@ -52,13 +55,15 @@ function send(res, status, body, headers = {}) {
   res.end(data);
 }
 
-function readBody(req, limit = 6 * 1024 * 1024) {
+function readBody(req, limit = 6 * 1024 * 1024, ctx = null) {
   return new Promise((resolve, reject) => {
     let size = 0; const chunks = [];
     req.on('data', (c) => { size += c.length; if (size > limit) { reject(new HttpError(413, 'Request is too large')); req.destroy(); } else chunks.push(c); });
     req.on('end', () => {
       if (!chunks.length) return resolve({});
-      try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); } catch { reject(bad('Request body is not valid JSON')); }
+      const text = Buffer.concat(chunks).toString('utf8');
+      if (ctx) ctx.raw = text;
+      try { resolve(JSON.parse(text)); } catch { reject(bad('Request body is not valid JSON')); }
     });
     req.on('error', reject);
   });
@@ -75,8 +80,10 @@ const clearCookie = (req) => `${COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Ag
 const clientIp = (req) => (process.env.TRUST_PROXY === '1' ? String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() : '') || req.socket.remoteAddress || '';
 
 function publicUser(u) {
-  return { id: u.id, email: u.email, name: u.name, role: u.role, status: u.status, timezone: u.timezone, currency: u.currency, created_at: u.created_at };
+  return { id: u.id, email: u.email, name: u.name, role: u.role, status: u.status, timezone: u.timezone, currency: u.currency, created_at: u.created_at, plan: planInfo(u) };
 }
+function limits(u) { return planInfo(u).limits; }
+function needPlan(u, ok, message) { if (!ok) throw new HttpError(402, message); }
 function authUser(req) {
   const tok = parseCookies(req.headers.cookie)[COOKIE];
   if (!tok) return null;
@@ -131,6 +138,11 @@ function publicAccount(a) {
 }
 
 function insertTrade(userId, accountId, t, source) {
+  const res = insertTradeRaw(userId, accountId, t, source);
+  if (source !== 'copy') { try { copy.publishClosedTrade(q.get('SELECT * FROM trades WHERE id = ?', Number(res.lastInsertRowid)), insertTrade); } catch (e) { console.error('copy publish failed', e); } }
+  return res;
+}
+function insertTradeRaw(userId, accountId, t, source) {
   return q.run(
     `INSERT INTO trades (user_id, account_id, external_id, symbol, side, volume, entry_price, exit_price, stop_loss, take_profit, open_time, close_time, profit, commission, swap, net, risk_amount, setup, tags, emotion, mistakes, rating, notes, source)
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
@@ -185,10 +197,9 @@ route('POST', '/api/auth/register', async (ctx) => {
   if (pw.length > 200) throw bad('Password is too long');
   let tz = String(b.timezone || 'UTC'); if (!validTimezone(tz)) tz = 'UTC';
   if (q.get('SELECT id FROM users WHERE email = ?', email)) throw bad('An account with this email already exists');
-  const first = q.get('SELECT COUNT(*) AS n FROM users').n === 0;
-  const role = first || (ADMIN_EMAIL && email === ADMIN_EMAIL) ? 'admin' : 'user';
+  const role = email === ADMIN_EMAIL ? 'admin' : 'user';
   const hash = await hashPassword(pw);
-  const r = q.run('INSERT INTO users (email, name, password_hash, role, timezone) VALUES (?,?,?,?,?)', email, name, hash, role, tz);
+  const r = q.run("INSERT INTO users (email, name, password_hash, role, timezone, plan, plan_source, trial_ends_at) VALUES (?,?,?,?,?,'pro','trial',?)", email, name, hash, role, tz, new Date(Date.now() + TRIAL_DAYS * 86400000).toISOString());
   const uid = Number(r.lastInsertRowid);
   q.run('INSERT INTO risk_rules (user_id) VALUES (?)', uid);
   return startSession(ctx, uid);
@@ -273,7 +284,8 @@ function accountFields(b, existing) {
 }
 route('POST', '/api/accounts', (ctx) => {
   const u = requireUser(ctx);
-  if (q.get('SELECT COUNT(*) AS n FROM accounts WHERE user_id = ?', u.id).n >= 25) throw bad('You can have up to 25 accounts');
+  const have = q.get('SELECT COUNT(*) AS n FROM accounts WHERE user_id = ?', u.id).n;
+  needPlan(u, have < limits(u).accounts, `Your ${planInfo(u).name} plan includes ${limits(u).accounts} trading account${limits(u).accounts === 1 ? '' : 's'}. Upgrade to add more.`);
   const f = accountFields({ currency: u.currency, ...ctx.body });
   const r = q.run('INSERT INTO accounts (user_id, name, broker, platform, currency, starting_balance, utc_offset) VALUES (?,?,?,?,?,?,?)', u.id, f.name, f.broker, f.platform, f.currency, f.starting_balance, f.utc_offset);
   return { account: publicAccount(q.get('SELECT * FROM accounts WHERE id = ?', Number(r.lastInsertRowid))) };
@@ -291,6 +303,7 @@ route('DELETE', '/api/accounts/:id', (ctx) => {
 });
 route('POST', '/api/accounts/:id/api-key', (ctx) => {
   const u = requireUser(ctx); const a = ownedAccount(u, ctx.params.id);
+  needPlan(u, limits(u).mt5, 'Live MT5 sync is included in Starter and above. Upgrade to connect MT5.');
   const key = `jpx_${crypto.randomBytes(24).toString('hex')}`;
   q.run('UPDATE accounts SET api_key_hash = ?, api_key_prefix = ? WHERE id = ?', sha(key), key.slice(0, 8), a.id);
   return { api_key: key, note: 'Copy this key now. It is shown only once.' };
@@ -397,9 +410,10 @@ route('POST', '/api/ingest', (ctx) => {
   const owner = q.get('SELECT * FROM users WHERE id = ?', a.user_id);
   if (!owner || owner.status !== 'active') throw new HttpError(403, 'Account owner is suspended');
   const list = Array.isArray(ctx.body.trades) ? ctx.body.trades : [];
-  if (!list.length) throw bad('Body must contain a non-empty "trades" array');
-  if (list.length > 500) throw bad('Send at most 500 trades per request');
-  let inserted = 0, updated = 0; const errors = [];
+  const openList = Array.isArray(ctx.body.open_positions) ? ctx.body.open_positions : [];
+  if (!list.length && !openList.length) throw bad('Body must contain a non-empty "trades" or "open_positions" array');
+  if (list.length > 500 || openList.length > 200) throw bad('Too many items in one request');
+  let inserted = 0, updated = 0, signals = 0; const errors = [];
   q.tx(() => {
     list.forEach((raw, i) => {
       if (!raw || !raw.external_id) { errors.push({ index: i, error: 'external_id (ticket) is required' }); return; }
@@ -411,11 +425,24 @@ route('POST', '/api/ingest', (ctx) => {
         q.run(`UPDATE trades SET symbol=?, side=?, volume=?, entry_price=?, exit_price=?, stop_loss=?, take_profit=?, open_time=?, close_time=?, profit=?, commission=?, swap=?, net=?, updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?`,
           t.symbol, t.side, t.volume, t.entry_price, t.exit_price, t.stop_loss, t.take_profit, t.open_time, t.close_time, t.profit, t.commission, t.swap, t.net, ex.id);
         updated++;
-      } else { insertTrade(a.user_id, a.id, t, a.platform === 'mt4' ? 'mt4' : 'mt5'); inserted++; }
+        try { copy.publishClosedTrade(q.get('SELECT * FROM trades WHERE id = ?', ex.id), insertTrade); } catch (e) { console.error(e); }
+      } else {
+        const mir = q.get("SELECT m.id, lp.alias FROM mirrors m JOIN follows f ON f.id = m.follow_id JOIN signals s ON s.id = m.signal_id JOIN leader_profiles lp ON lp.user_id = s.leader_user_id WHERE f.follower_account_id = ? AND m.open_ticket = ?", a.id, t.external_id);
+        if (mir) { t.setup = `Copy · ${mir.alias}`; t.tags = 'copy-trade'; }
+        insertTrade(a.user_id, a.id, t, a.platform === 'mt4' ? 'mt4' : 'mt5'); inserted++;
+      }
+    });
+    openList.forEach((raw, i) => {
+      const side = String(raw && raw.side || '').toLowerCase(), sym = String(raw && raw.symbol || '').toUpperCase().slice(0, 32);
+      const vol = Number(raw && raw.volume), ref = raw && raw.external_id, opened = parseDT(raw && raw.open_time, a.utc_offset);
+      if (!ref || !sym || !['buy', 'sell', 'long', 'short'].includes(side) || !(vol > 0) || !opened) { errors.push({ index: i, error: 'open position needs external_id, symbol, side, volume, open_time' }); return; }
+      const prof = q.get('SELECT 1 FROM leader_profiles WHERE user_id = ? AND account_id = ?', a.user_id, a.id);
+      if (!prof) return; // only strategy leaders publish live signals
+      signals += copy.upsertOpenSignals(a.user_id, a.id, [{ ref: String(ref), symbol: sym, side: side === 'buy' || side === 'long' ? 'long' : 'short', volume: vol, entry_price: Number(raw.entry_price) || null, stop_loss: Number(raw.stop_loss) || null, take_profit: Number(raw.take_profit) || null, opened_at: opened }]);
     });
     q.run("UPDATE accounts SET last_sync = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?", a.id);
   });
-  return { inserted, updated, errors };
+  return { inserted, updated, signals, errors };
 }, { public: true, noCsrf: true });
 
 route('GET', '/api/ingest/ping', (ctx) => {
@@ -433,7 +460,12 @@ route('GET', '/api/analytics', (ctx) => {
   const u = requireUser(ctx);
   const rows = loadTrades(u, ctx.query);
   const useStart = !ctx.query.from && !ctx.query.to && !ctx.query.symbol && !ctx.query.setup && !ctx.query.side && !ctx.query.result;
-  return analyze(rows, { tz: u.timezone, startingBalance: useStart ? startingBalance(u, ctx.query.account_id) : 0 });
+  const out = analyze(rows, { tz: u.timezone, startingBalance: useStart ? startingBalance(u, ctx.query.account_id) : 0 });
+  if (!limits(u).advancedAnalytics) {
+    for (const k of ['byHour', 'byWeekday', 'bySymbol', 'bySetup', 'bySide', 'byTag', 'rBuckets']) out[k] = [];
+    out.locked = true;
+  }
+  return out;
 });
 
 route('GET', '/api/export/trades.csv', (ctx) => {
@@ -496,6 +528,30 @@ route('GET', '/api/risk/status', (ctx) => {
   return { date: today, net: Math.round(net * 100) / 100, trades: todays.length, checks };
 });
 
+// ---- Contact form (public) + admin inbox
+route('POST', '/api/contact', (ctx) => {
+  rateLimit(`contact:${ctx.ip}`, 5, 3600000);
+  const b = ctx.body;
+  if (b.website) return { ok: true }; // honeypot field: bots fill it, humans never see it
+  const name = str(b.name, 80, 'Name', true);
+  const email = str(b.email, 200, 'Email', true).toLowerCase();
+  if (!EMAIL_RE.test(email)) throw bad('Enter a valid email address');
+  const message = str(b.message, 4000, 'Message', true);
+  if (message.length < 10) throw bad('Please write a little more so we can help');
+  q.run('INSERT INTO contact_messages (name, email, message) VALUES (?,?,?)', name, email, message);
+  return { ok: true };
+}, { public: true });
+route('GET', '/api/admin/messages', (ctx) => {
+  requireAdmin(ctx);
+  return { messages: q.all('SELECT * FROM contact_messages ORDER BY id DESC LIMIT 200') };
+});
+route('DELETE', '/api/admin/messages/:id', (ctx) => {
+  const a = requireAdmin(ctx);
+  q.run('DELETE FROM contact_messages WHERE id = ?', Number(ctx.params.id));
+  audit(a.id, 'deleted contact message', ctx.params.id);
+  return { ok: true };
+});
+
 // ---- Admin
 route('GET', '/api/admin/stats', (ctx) => {
   requireAdmin(ctx);
@@ -553,6 +609,8 @@ route('DELETE', '/api/admin/users/:id', (ctx) => {
   return { ok: true };
 });
 
+require('./lib/routes-extra')({ route, q, HttpError, bad, requireUser, requireAdmin, str, rateLimit, sha, EMAIL_RE, audit, limits, needPlan, loadTrades, analyze, publicUser });
+
 /* ------------------------------------------------------------------ static + dispatch */
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.txt': 'text/plain; charset=utf-8', '.mq5': 'text/plain; charset=utf-8', '.webmanifest': 'application/manifest+json' };
 const SEC_HEADERS = {
@@ -594,7 +652,7 @@ const server = http.createServer(async (req, res) => {
       if (req.headers['x-requested-with'] !== 'jpx') throw new HttpError(403, 'Missing request header');
     }
     ctx.user = authUser(req);
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) ctx.body = await readBody(req);
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) ctx.body = await readBody(req, undefined, ctx);
     const out = await r.handler(ctx);
     if (out && out.raw !== undefined) return send(res, out.status || 200, out.raw, { ...SEC_HEADERS, ...out.headers });
     if (out && out.status && out.body) return send(res, out.status, out.body, { ...SEC_HEADERS, ...out.headers });

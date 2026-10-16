@@ -1,5 +1,6 @@
 //+------------------------------------------------------------------+
-//| JPX Sync - sends closed MT5 positions to your JPX Traders journal |
+//| JPX Sync - sends closed MT5 positions (and open ones, for       |
+//| strategy leaders) to your JPX Traders journal                    |
 //| Setup: Tools > Options > Expert Advisors > allow WebRequest for   |
 //| your JPX server origin (e.g. https://your-domain.com).            |
 //+------------------------------------------------------------------+
@@ -127,12 +128,34 @@ bool Flush(const string batch)
    return ok;
   }
 
+//--- publishes currently open positions (used by strategy leaders for live copy trading)
+void SendOpenPositions()
+  {
+   int n = PositionsTotal();
+   if(n <= 0) return;
+   string batch = ""; int count = 0;
+   for(int i = 0; i < n; i++)
+     {
+      ulong tk = PositionGetTicket(i);
+      if(tk == 0) continue;
+      long type = PositionGetInteger(POSITION_TYPE);
+      string one = StringFormat("{\"external_id\":\"%I64u\",\"symbol\":\"%s\",\"side\":\"%s\",\"volume\":%s,\"entry_price\":%s,\"stop_loss\":%s,\"take_profit\":%s,\"open_time\":%I64d}",
+                                (ulong)PositionGetInteger(POSITION_IDENTIFIER), PositionGetString(POSITION_SYMBOL), type == POSITION_TYPE_BUY ? "buy" : "sell",
+                                JsonNum(PositionGetDouble(POSITION_VOLUME), 2), JsonNum(PositionGetDouble(POSITION_PRICE_OPEN)), JsonNum(PositionGetDouble(POSITION_SL)),
+                                JsonNum(PositionGetDouble(POSITION_TP)), ToUtc((datetime)PositionGetInteger(POSITION_TIME)));
+      batch += (count ? "," : "") + one; count++;
+     }
+   string resp; int st;
+   if(!Post(ServerUrl, "{\"open_positions\":[" + batch + "]}", resp, st)) PrintFormat("JPX: open positions upload failed (%d): %s", st, resp);
+  }
+
 //--- events -------------------------------------------------------------
 int OnInit()
   {
    if(StringLen(ApiKey) < 10) { Print("JPX: set the ApiKey input"); return INIT_PARAMETERS_INCORRECT; }
    Ping();
    SyncFrom(TimeCurrent() - (datetime)HistoryDays * 86400);
+   SendOpenPositions();
    g_lastFull = TimeCurrent();
    EventSetTimer(30);
    return INIT_SUCCEEDED;
@@ -147,6 +170,6 @@ void OnTradeTransaction(const MqlTradeTransaction &trans, const MqlTradeRequest 
 
 void OnTimer()
   {
-   if(g_pending) { g_pending = false; SyncFrom(TimeCurrent() - 3 * 86400); }
+   if(g_pending) { g_pending = false; SendOpenPositions(); SyncFrom(TimeCurrent() - 3 * 86400); }
   }
 //+------------------------------------------------------------------+
