@@ -25,6 +25,18 @@ MetaTrader (Tools > Options > Expert Advisors), attach to a chart. Endpoint: `PO
 with `X-API-Key`, body `{ "trades": [{ external_id, symbol, side, volume, open_time, close_time, profit, commission, swap, ... }] }`
 (times: epoch seconds UTC or ISO). Upserts by `external_id`.
 
+## Deploy on Render (keeps user data)
+1. Use a **paid** web service (Starter). Free instances erase their disk on every deploy.
+2. Add a **Disk**: Service > Disks > Add Disk, mount path `/var/data`, 1 GB.
+3. Environment variables: `JPX_DATA_DIR=/var/data`, `NODE_VERSION=22.12.0`, `COOKIE_SECURE=1`, `TRUST_PROXY=1`, `ADMIN_EMAIL=jpee49275@gmail.com`, `PUBLIC_URL=https://your-site.onrender.com`.
+4. Start command `node --no-warnings server.js`; health check path `/api/health`. (Or commit `render.yaml` and use New > Blueprint.)
+5. Open Admin > System and backup: the data folder must read `/var/data`. Download a database backup from there regularly.
+
+## Automatic broker import (MetaApi)
+Users connect MT4/MT5 on the Brokers page (broker server, login, password). Create an account at metaapi.cloud, copy your API token and set
+`METAAPI_TOKEN`. Passwords go to MetaApi once and are never stored here. MetaApi bills for connected accounts, so check their pricing.
+Trades refresh about every minute (`METAAPI_POLL_SECONDS`). Admin > System shows whether it is configured.
+
 ## Plans, billing and copy trading
 Plans (Starter $19, Pro $49, Elite $99 per month; 14-day Pro trial for new users) live in `lib/plans.js` and are enforced by the API.
 Online payments use Stripe and are off until you set:
@@ -51,5 +63,6 @@ stored in the database and appear in the Admin page. Payments are not implemente
 
 ## Tests
     node --no-warnings tools/test-api.js                 # 68 API/security/analytics checks
+    node --no-warnings tools/test-metaapi.js             # 25 broker-import checks against a local stand-in for MetaApi
     node --no-warnings tools/test-extra.js               # 74 copy-trading / plans / billing / support / API checks
     BASE=http://127.0.0.1:PORT python3 tools/ui-test.py  # Playwright, needs a running server + /tmp/seed.csv

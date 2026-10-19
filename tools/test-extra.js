@@ -43,7 +43,7 @@ server.listen(0, async () => {
     const now = Date.now(), iso = (d) => new Date(d).toISOString();
     const hist = [[3, 120], [2, -50], [1, 80]];
     for (const [days, profit] of hist) { r = await L.call('POST', '/api/trades', { account_id: lacc.id, symbol: 'EURUSD', side: 'buy', volume: 1, open_time: iso(now - days * 86400000), close_time: iso(now - days * 86400000 + 3600000), profit, commission: 0 }); ok(r.status === 200, 'leader history trade'); }
-    r = await anon.call('GET', '/api/public/leaders'); const top = r.body.leaders[0];
+    r = await anon.call('GET', '/api/public/leaders'); ok(r.body.leaders.filter((x) => x.featured).length === 5 && r.body.leaders[0].avatar.startsWith('/img/traders/'), 'five demo top traders are on the leaderboard with images'); const top = r.body.leaders.find((x) => x.alias === 'AlphaFX');
     ok(top && top.alias === 'AlphaFX' && top.trades === 3 && top.gain === 1.5 && top.win_rate > 66 && top.user_id === undefined, 'public leaderboard shows real stats (+1.5%) without internal ids: ' + JSON.stringify(top && [top.gain, top.trades]));
 
     // followers
@@ -173,7 +173,26 @@ server.listen(0, async () => {
 
     // cleanup paths
     r = await L.call('DELETE', '/api/copy/profile'); ok(r.status === 200, 'leader can stop publishing');
-    r = await anon.call('GET', '/api/public/leaders'); ok(r.body.leaders.length === 0, 'leader removed from leaderboard');
+    r = await anon.call('GET', '/api/public/leaders'); ok(!r.body.leaders.some((x) => x.alias === 'AlphaFX'), 'leader removed from leaderboard');
+
+    // admin-managed leaderboard
+    r = await A.call('GET', '/api/admin/featured'); ok(r.body.featured.length === 5, 'admin lists the demo traders');
+    r = await F.call('POST', '/api/admin/featured', { alias: 'X', gain: 1, win_rate: 1, profit_factor: 1, trades: 1, followers: 1 }); ok(r.status === 403, 'non-admin cannot edit leaderboard');
+    r = await A.call('POST', '/api/admin/featured', { alias: 'New Star', bio: 'Test', gain: 30.5, win_rate: 70, profit_factor: 3, trades: 50, followers: 10, max_dd: 2, avatar: 'javascript:alert(1)' }); ok(r.status === 400, 'unsafe avatar rejected');
+    r = await A.call('POST', '/api/admin/featured', { alias: 'New Star', bio: 'Test', gain: 30.5, win_rate: 70, profit_factor: 3, trades: 50, followers: 10, max_dd: 2 }); const nid = r.body.id; ok(r.status === 200, 'admin adds a trader');
+    r = await anon.call('GET', '/api/public/leaders'); ok(r.body.leaders[0].alias === 'New Star' && r.body.leaders[0].rank === 1 && r.body.leaders[0].spark.length === 30, 'new trader ranks first on the website');
+    r = await A.call('PUT', `/api/admin/featured/${nid}`, { gain: 5 }); ok(r.status === 200, 'admin edits a trader');
+    r = await anon.call('GET', '/api/public/leaders'); ok(r.body.leaders.find((x) => x.alias === 'New Star').gain === 5, 'edit shows on website');
+    r = await A.call('DELETE', `/api/admin/featured/${nid}`); ok(r.status === 200, 'admin deletes a trader');
+    for (const f of (await A.call('GET', '/api/admin/featured')).body.featured) await A.call('DELETE', `/api/admin/featured/${f.id}`);
+    r = await anon.call('GET', '/api/public/leaders'); ok(r.body.leaders.length === 0, 'all demo traders can be deleted');
+
+    // testimonials (admin-managed, no built-in samples)
+    r = await anon.call('GET', '/api/public/reviews'); ok(r.body.reviews.length === 1, 'only the approved user review is public (no samples)');
+    r = await A.call('POST', '/api/admin/testimonials', { name: 'Jane Doe', role: 'Forex trader', quote: 'Great tool for reviewing my trades.', rating: 5 }); const tid2 = r.body.id; ok(r.status === 200, 'admin adds a testimonial');
+    r = await anon.call('GET', '/api/public/reviews'); ok(r.body.reviews[0].name === 'Jane Doe' && r.body.reviews.length === 2, 'testimonial appears on the website');
+    r = await F.call('POST', '/api/admin/testimonials', { name: 'x', quote: 'y' }); ok(r.status === 403, 'non-admin cannot add testimonials');
+    r = await A.call('DELETE', `/api/admin/testimonials/${tid2}`); r = await anon.call('GET', '/api/public/reviews'); ok(r.body.reviews.length === 1, 'testimonial deleted');
   } catch (e) { console.log('ERROR', e); fail++; }
   console.log(`\n${pass} passed, ${fail} failed`);
   server.close(); process.exit(fail ? 1 : 0);

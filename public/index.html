@@ -28,6 +28,8 @@
   <symbol id="i-copy" viewBox="0 0 24 24"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><path d="M10 7h5a3 3 0 0 1 3 3v4M14 17H9a3 3 0 0 1-3-3v-4"/></symbol>
   <symbol id="i-support" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="m5.6 5.6 3.9 3.9M14.5 14.5l3.9 3.9M18.4 5.6l-3.9 3.9M9.5 14.5l-3.9 3.9"/></symbol>
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.2a6.5 6.5 0 0 1 3.5 5.8"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></symbol>
   <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></symbol>
   <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
 </defs></svg>
@@ -50,6 +52,7 @@
 <main id="top">
   <!-- HERO -->
   <section class="lp-hero">
+    <svg class="lp-waves" viewBox="0 0 900 700" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="wv" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity=".25"/></linearGradient></defs><path d="M0 420C200 360 330 250 520 270S780 230 900 120V700H0Z" fill="url(#wv)" opacity=".7"/><path d="M0 520C220 470 380 380 560 400S800 360 900 300V700H0Z" fill="url(#wv)" opacity=".55"/><path d="M0 610C260 570 420 520 620 540S820 520 900 470V700H0Z" fill="#fff" opacity=".6"/></svg>
     <div class="lp-blob b1" aria-hidden="true" data-par="0.12"></div><div class="lp-blob b2" aria-hidden="true" data-par="0.2"></div>
     <div class="lp-wrap lp-hero-in">
       <div class="lp-hero-copy">
@@ -64,14 +67,57 @@
       </div>
       <div class="lp-visual" aria-hidden="true" data-par="-0.05">
         <div class="prism">
-          <div class="slab s3"></div><div class="slab s2"></div>
-          <div class="slab s1"><div class="candles">
-            <b style="--h:34%;--d:0s" class="up"></b><b style="--h:52%;--d:.3s" class="dn"></b><b style="--h:44%;--d:.6s" class="up"></b><b style="--h:70%;--d:.9s" class="up"></b><b style="--h:58%;--d:1.2s" class="dn"></b><b style="--h:82%;--d:1.5s" class="up"></b><b style="--h:64%;--d:1.8s" class="dn"></b><b style="--h:92%;--d:2.1s" class="up"></b>
-          </div></div>
-          <div class="floor"></div>
+          <svg viewBox="100 135 780 675" xmlns="http://www.w3.org/2000/svg" role="presentation" focusable="false">
+            <defs>
+              <linearGradient id="gL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6a8dff" stop-opacity=".85"/><stop offset=".45" stop-color="#3b78f2" stop-opacity=".88"/><stop offset="1" stop-color="#1f46d0" stop-opacity=".92"/></linearGradient>
+              <linearGradient id="gI" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5c8cff" stop-opacity=".55"/><stop offset="1" stop-color="#1f50d8" stop-opacity=".72"/></linearGradient>
+              <linearGradient id="gM" x1="0" y1="0" x2=".5" y2="1"><stop offset="0" stop-color="#60d0f2" stop-opacity=".88"/><stop offset=".55" stop-color="#2fd6c4" stop-opacity=".88"/><stop offset="1" stop-color="#1fb89e" stop-opacity=".92"/></linearGradient>
+              <linearGradient id="gR" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7595fa" stop-opacity=".88"/><stop offset="1" stop-color="#3a58dc" stop-opacity=".92"/></linearGradient>
+              <linearGradient id="eC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#a6f6ff"/><stop offset="1" stop-color="#4fc6ff"/></linearGradient>
+              <linearGradient id="eV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a73f5"/><stop offset="1" stop-color="#3a58e6"/></linearGradient>
+              <linearGradient id="sheen" x1="0" y1="0" x2="1" y2=".4"><stop offset="0" stop-color="#fff" stop-opacity=".5"/><stop offset=".4" stop-color="#fff" stop-opacity=".08"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+              <linearGradient id="cG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".28" stop-color="#7efbe0"/><stop offset="1" stop-color="#10cdb0"/></linearGradient>
+              <linearGradient id="cB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1f6ff"/><stop offset=".4" stop-color="#8fbaff"/><stop offset="1" stop-color="#3f7cf0"/></linearGradient>
+              <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+              <mask id="rm" maskUnits="userSpaceOnUse" x="100" y="150" width="780" height="550"><rect x="100" y="150" width="780" height="550" fill="url(#fade)"/></mask>
+              <radialGradient id="floor" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffffff" stop-opacity="1"/><stop offset=".4" stop-color="#a9ecff" stop-opacity=".6"/><stop offset="1" stop-color="#a9ecff" stop-opacity="0"/></radialGradient>
+              <filter id="glow" x="-90%" y="-30%" width="280%" height="160%"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              <filter id="edgeglow" x="-50%" y="-10%" width="200%" height="120%"><feGaussianBlur stdDeviation="5"/></filter>
+              <filter id="soft"><feGaussianBlur stdDeviation="9"/></filter>
+            </defs>
+            <ellipse cx="480" cy="716" rx="430" ry="46" fill="url(#floor)"/>
+            <rect x="110" y="708" width="760" height="4" fill="#fff" filter="url(#soft)"/>
+            <rect x="200" y="735" width="560" height="3" fill="#fff" opacity=".8" filter="url(#soft)"/>
+            <g class="scene">
+              <g id="panels">
+                <polygon points="696,272 822,255 822,652 696,640" fill="url(#gR)"/><line x1="696" x2="822" y1="330" y2="330" stroke="#fff" stroke-opacity=".12"/><line x1="696" x2="822" y1="400" y2="400" stroke="#fff" stroke-opacity=".12"/><line x1="696" x2="822" y1="470" y2="470" stroke="#fff" stroke-opacity=".12"/><line x1="696" x2="822" y1="540" y2="540" stroke="#fff" stroke-opacity=".12"/><line x1="696" x2="822" y1="600" y2="600" stroke="#fff" stroke-opacity=".12"/><g class="cdl" style="animation-delay:0.50s" filter="url(#glow)"><line x1="716" x2="716" y1="437" y2="582" stroke="#b8fff0" stroke-width="2.4" stroke-linecap="round"/><rect x="709" y="480" width="14" height="77" rx="3.5" fill="url(#cG)" stroke="#fff" stroke-opacity=".8" stroke-width="1"/></g><g class="cdl" style="animation-delay:0.87s" filter="url(#glow)"><line x1="744" x2="744" y1="400" y2="549" stroke="#b8fff0" stroke-width="2.4" stroke-linecap="round"/><rect x="737" y="432" width="14" height="87" rx="3.5" fill="url(#cG)" stroke="#fff" stroke-opacity=".8" stroke-width="1"/></g><g class="cdl" style="animation-delay:1.24s" filter="url(#glow)"><line x1="772" x2="772" y1="440" y2="552" stroke="#b8fff0" stroke-width="2.4" stroke-linecap="round"/><rect x="765" y="461" width="14" height="56" rx="3.5" fill="url(#cG)" stroke="#fff" stroke-opacity=".8" stroke-width="1"/></g><g class="cdl" style="animation-delay:1.61s" filter="url(#glow)"><line x1="800" x2="800" y1="496" y2="627" stroke="#b8fff0" stroke-width="2.4" stroke-linecap="round"/><rect x="793" y="543" width="14" height="54" rx="3.5" fill="url(#cG)" stroke="#fff" stroke-opacity=".8" stroke-width="1"/></g>
+                <polygon points="696,272 822,255 822,652 696,640" fill="url(#sheen)"/>
+                <polygon points="822,255 834,263 834,648 822,652" fill="url(#eV)"/>
+                <polygon points="696,272 822,255 822,652 696,640" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="2.2" stroke-linejoin="round"/>
+                <polygon points="480,232 690,182 690,672 478,650" fill="url(#gM)"/><line x1="480" x2="690" y1="300" y2="300" stroke="#fff" stroke-opacity=".12"/><line x1="480" x2="690" y1="370" y2="370" stroke="#fff" stroke-opacity=".12"/><line x1="480" x2="690" y1="440" y2="440" stroke="#fff" stroke-opacity=".12"/><line x1="480" x2="690" y1="510" y2="510" stroke="#fff" stroke-opacity=".12"/><line x1="480" x2="690" y1="580" y2="580" stroke="#fff" stroke-opacity=".12"/><line x1="540" x2="540" y1="200" y2="660" stroke="#fff" stroke-opacity=".08"/><line x1="600" x2="600" y1="200" y2="660" stroke="#fff" stroke-opacity=".08"/><line x1="660" x2="660" y1="200" y2="660" stroke="#fff" stroke-opacity=".08"/>
+                <rect x="478" y="232" width="14" height="418" fill="#fff" opacity=".55" filter="url(#soft)"/>
+                <g class="cdl" style="animation-delay:1.20s" filter="url(#glow)"><line x1="500" x2="500" y1="371" y2="494" stroke="#b8fff0" stroke-width="2.4" stroke-linecap="round"/><rect x="492" y="408" width="16" height="67" rx="3.5" fill="url(#cG)" stroke="#fff" stroke-opacity=".8" stroke-width="1"/></g><g class="cdl" style="animation-delay:1.57s" filter="url(#glow)"><line x1="530" x2="530" y1="369" y2="508" stroke="#c4d6ff" stroke-width="2.4" stroke-linecap="round"/><rect x="522" y="404" width="16" height="74" rx="3.5" fill="url(#cB)" stroke="#fff" stroke-opacity=".8" stroke-width="1"/></g><g class="cdl" style="animation-delay:1.94s" filter="url(#glow)"><line x1="562" x2="562" y1="435" y2="606" stroke="#b8fff0" stroke-width="2.4" stroke-linecap="round"/><rect x="554" y="473" width="16" height="97" rx="3.5" fill="url(#cG)" stroke="#fff" stroke-opacity=".8" stroke-width="1"/></g><g class="cdl" style="animation-delay:2.31s" filter="url(#glow)"><line x1="594" x2="594" y1="475" y2="644" stroke="#b8fff0" stroke-width="2.4" stroke-linecap="round"/><rect x="586" y="530" width="16" height="81" rx="3.5" fill="url(#cG)" stroke="#fff" stroke-opacity=".8" stroke-width="1"/></g><g class="cdl" style="animation-delay:2.68s" filter="url(#glow)"><line x1="626" x2="626" y1="388" y2="527" stroke="#b8fff0" stroke-width="2.4" stroke-linecap="round"/><rect x="618" y="421" width="16" height="86" rx="3.5" fill="url(#cG)" stroke="#fff" stroke-opacity=".8" stroke-width="1"/></g><g class="cdl" style="animation-delay:3.05s" filter="url(#glow)"><line x1="658" x2="658" y1="466" y2="645" stroke="#c4d6ff" stroke-width="2.4" stroke-linecap="round"/><rect x="650" y="503" width="16" height="95" rx="3.5" fill="url(#cB)" stroke="#fff" stroke-opacity=".8" stroke-width="1"/></g><g class="cdl" style="animation-delay:3.42s" filter="url(#glow)"><line x1="682" x2="682" y1="371" y2="523" stroke="#c4d6ff" stroke-width="2.4" stroke-linecap="round"/><rect x="674" y="426" width="16" height="63" rx="3.5" fill="url(#cB)" stroke="#fff" stroke-opacity=".8" stroke-width="1"/></g>
+                <polygon points="480,232 690,182 690,672 478,650" fill="url(#sheen)"/>
+                <polygon points="690,182 708,191 708,668 690,672" fill="#bff6ff" opacity=".9" filter="url(#edgeglow)"/>
+                <polygon points="690,182 708,191 708,668 690,672" fill="url(#eC)"/>
+                <polygon points="480,232 690,182 690,672 478,650" fill="none" stroke="#fff" stroke-opacity=".9" stroke-width="2.4" stroke-linejoin="round"/>
+                <polygon points="150,250 455,155 470,685 125,635" fill="url(#gL)"/>
+                <polygon points="244,302 455,238 455,642 240,612" fill="url(#gI)" stroke="#fff" stroke-opacity=".55" stroke-width="1.2"/><line x1="150" x2="455" y1="330" y2="330" stroke="#fff" stroke-opacity=".12"/><line x1="150" x2="455" y1="400" y2="400" stroke="#fff" stroke-opacity=".12"/><line x1="150" x2="455" y1="470" y2="470" stroke="#fff" stroke-opacity=".12"/><line x1="150" x2="455" y1="540" y2="540" stroke="#fff" stroke-opacity=".12"/><line x1="150" x2="455" y1="610" y2="610" stroke="#fff" stroke-opacity=".12"/><line x1="210" x2="210" y1="190" y2="640" stroke="#fff" stroke-opacity=".08"/><line x1="270" x2="270" y1="190" y2="640" stroke="#fff" stroke-opacity=".08"/><line x1="330" x2="330" y1="190" y2="640" stroke="#fff" stroke-opacity=".08"/><line x1="390" x2="390" y1="190" y2="640" stroke="#fff" stroke-opacity=".08"/>
+                <g class="cdl" style="animation-delay:0.00s" filter="url(#glow)"><line x1="172" x2="172" y1="374" y2="525" stroke="#b8fff0" stroke-width="2.4" stroke-linecap="round"/><rect x="162.5" y="412" width="19" height="79" rx="3.5" fill="url(#cG)" stroke="#fff" stroke-opacity=".8" stroke-width="1"/></g><g class="cdl" style="animation-delay:0.37s" filter="url(#glow)"><line x1="200" x2="200" y1="403" y2="546" stroke="#b8fff0" stroke-width="2.4" stroke-linecap="round"/><rect x="190.5" y="451" width="19" height="60" rx="3.5" fill="url(#cG)" stroke="#fff" stroke-opacity=".8" stroke-width="1"/></g><g class="cdl" style="animation-delay:0.74s" filter="url(#glow)"><line x1="232" x2="232" y1="391" y2="524" stroke="#b8fff0" stroke-width="2.4" stroke-linecap="round"/><rect x="222.5" y="414" width="19" height="73" rx="3.5" fill="url(#cG)" stroke="#fff" stroke-opacity=".8" stroke-width="1"/></g><g class="cdl" style="animation-delay:1.11s" filter="url(#glow)"><line x1="266" x2="266" y1="416" y2="581" stroke="#b8fff0" stroke-width="2.4" stroke-linecap="round"/><rect x="256.5" y="444" width="19" height="99" rx="3.5" fill="url(#cG)" stroke="#fff" stroke-opacity=".8" stroke-width="1"/></g><g class="cdl" style="animation-delay:1.48s" filter="url(#glow)"><line x1="300" x2="300" y1="357" y2="527" stroke="#b8fff0" stroke-width="2.4" stroke-linecap="round"/><rect x="290.5" y="393" width="19" height="109" rx="3.5" fill="url(#cG)" stroke="#fff" stroke-opacity=".8" stroke-width="1"/></g><g class="cdl" style="animation-delay:1.85s" filter="url(#glow)"><line x1="336" x2="336" y1="439" y2="647" stroke="#b8fff0" stroke-width="2.4" stroke-linecap="round"/><rect x="326.5" y="473" width="19" height="140" rx="3.5" fill="url(#cG)" stroke="#fff" stroke-opacity=".8" stroke-width="1"/></g><g class="cdl" style="animation-delay:2.22s" filter="url(#glow)"><line x1="372" x2="372" y1="457" y2="622" stroke="#c4d6ff" stroke-width="2.4" stroke-linecap="round"/><rect x="362.5" y="503" width="19" height="97" rx="3.5" fill="url(#cB)" stroke="#fff" stroke-opacity=".8" stroke-width="1"/></g><g class="cdl" style="animation-delay:2.59s" filter="url(#glow)"><line x1="408" x2="408" y1="367" y2="534" stroke="#b8fff0" stroke-width="2.4" stroke-linecap="round"/><rect x="398.5" y="420" width="19" height="84" rx="3.5" fill="url(#cG)" stroke="#fff" stroke-opacity=".8" stroke-width="1"/></g><g class="cdl" style="animation-delay:2.96s" filter="url(#glow)"><line x1="438" x2="438" y1="350" y2="500" stroke="#b8fff0" stroke-width="2.4" stroke-linecap="round"/><rect x="428.5" y="397" width="19" height="74" rx="3.5" fill="url(#cG)" stroke="#fff" stroke-opacity=".8" stroke-width="1"/></g>
+                <polygon points="150,250 455,155 470,685 125,635" fill="url(#sheen)"/>
+                <polygon points="455,155 476,163 491,692 470,685" fill="#bff6ff" opacity=".9" filter="url(#edgeglow)"/>
+                <polygon points="455,155 476,163 491,692 470,685" fill="url(#eC)"/>
+                <polygon points="150,250 126,262 118,628 125,635" fill="url(#eV)"/>
+                <polygon points="150,250 455,155 476,163 161,246" fill="#fff" opacity=".8"/>
+                <polygon points="125,635 470,685 491,692 130,644" fill="#cfe8ff" opacity=".75"/>
+                <polygon points="150,250 455,155 470,685 125,635" fill="none" stroke="#fff" stroke-opacity=".95" stroke-width="2.6" stroke-linejoin="round"/>
+              </g>
+              <g transform="translate(0,1400) scale(1,-1)" opacity=".24" mask="url(#rm)"><use href="#panels"/></g>
+            </g>
+          </svg>
         </div>
-        <div class="fcard fc1"><span class="tile"><svg class="ico"><use href="#i-copy"/></svg></span><div><b>Copy Trading</b><span>Follow top traders and copy their trades automatically.</span></div></div>
-        <div class="fcard fc2"><span class="tile"><svg class="ico"><use href="#i-journal"/></svg></span><div><b>Trading Journal</b><span>Record, analyze and improve your performance.</span></div></div>
+        <div class="fcard fc1"><span class="tile"><svg class="ico"><use href="#i-users"/></svg></span><div><b>Copy Trading</b><span>Follow top traders and copy their trades automatically.</span></div></div>
+        <div class="fcard fc2"><span class="tile"><svg class="ico"><use href="#i-doc"/></svg></span><div><b>Trading Journal</b><span>Record, analyze and improve your performance.</span></div></div>
       </div>
     </div>
   </section>
@@ -80,10 +126,10 @@
   <section class="lp-strip-sec" id="features">
     <div class="lp-wrap">
       <div class="lp-strip" data-reveal>
-        <div class="f"><span class="tile"><svg class="ico"><use href="#i-copy"/></svg></span><b>Copy Trading</b><p>Automatically copy trades from top-performing traders.</p></div>
+        <div class="f"><span class="tile"><svg class="ico"><use href="#i-users"/></svg></span><b>Copy Trading</b><p>Automatically copy trades from top-performing traders.</p></div>
         <div class="f"><span class="tile"><svg class="ico"><use href="#i-link"/></svg></span><b>MT4 / MT5 Support</b><p>Seamless integration with industry-leading platforms.</p></div>
         <div class="f"><span class="tile"><svg class="ico"><use href="#i-chart"/></svg></span><b>Advanced Analytics</b><p>Track performance with real-time insights and reports.</p></div>
-        <div class="f"><span class="tile"><svg class="ico"><use href="#i-journal"/></svg></span><b>Trading Journal</b><p>Record trades, analyze patterns and improve.</p></div>
+        <div class="f"><span class="tile"><svg class="ico"><use href="#i-doc"/></svg></span><b>Trading Journal</b><p>Record trades, analyze patterns and improve.</p></div>
         <div class="f"><span class="tile"><svg class="ico"><use href="#i-shield"/></svg></span><b>Secure &amp; Reliable</b><p>Your data and funds are always protected.</p></div>
         <div class="f"><span class="tile"><svg class="ico"><use href="#i-cal"/></svg></span><b>Trade Recording</b><p>Auto-sync trades and keep a full trading history.</p></div>
       </div>
@@ -124,8 +170,8 @@
         </div>
         <ol class="lp-steps">
           <li><span class="num">1</span><span class="tile"><svg class="ico"><use href="#i-link"/></svg></span><b>Connect Broker</b><p>Link your MT4/MT5 account securely.</p></li>
-          <li><span class="num">2</span><span class="tile"><svg class="ico"><use href="#i-copy"/></svg></span><b>Copy Trades</b><p>Follow top traders and copy their trades.</p></li>
-          <li><span class="num">3</span><span class="tile"><svg class="ico"><use href="#i-journal"/></svg></span><b>Record Trades</b><p>Track your trades, notes and performance.</p></li>
+          <li><span class="num">2</span><span class="tile"><svg class="ico"><use href="#i-users"/></svg></span><b>Copy Trades</b><p>Follow top traders and copy their trades.</p></li>
+          <li><span class="num">3</span><span class="tile"><svg class="ico"><use href="#i-doc"/></svg></span><b>Record Trades</b><p>Track your trades, notes and performance.</p></li>
           <li><span class="num">4</span><span class="tile"><svg class="ico"><use href="#i-trend"/></svg></span><b>Analyze &amp; Improve</b><p>Get insights and improve your performance.</p></li>
         </ol>
       </div>
@@ -205,8 +251,8 @@
       </div>
       <div class="lp-faq" data-reveal>
         <details><summary>Is JPX Traders safe and secure?</summary><p>Your journal is only visible to your account. Passwords are hashed, sessions use secure cookies, JPX never asks for your broker password, and you can export or delete your data at any time.</p></details>
-        <details><summary>Which platforms are supported (MT4/MT5)?</summary><p>Live sync and copy execution run through MetaTrader 5 with the JPX Expert Advisors. MT4 and MT5 history can be imported as CSV. Other brokers and markets can be logged manually.</p></details>
-        <details><summary>How does copy trading work?</summary><p>Pick a trader on the leaderboard and choose the account to copy into. Their trades are mirrored into your journal in proportion to your balance, or at a fixed multiplier. With the JPX Copy Expert Advisor on MT5 the same trades are opened and closed at your broker. Copy trading carries risk; you stay in control and can pause or stop at any time.</p></details>
+        <details><summary>Which platforms are supported (MT4/MT5)?</summary><p>Connect any MT4 or MT5 account with your broker server, login and password and your trades import automatically. Other brokers and markets can be logged manually.</p></details>
+        <details><summary>How does copy trading work?</summary><p>Pick a trader on the leaderboard and choose the account to copy into. Their trades are mirrored into your journal in proportion to your balance, or at a fixed multiplier. Copy trading carries risk; you stay in control and can pause or stop at any time.</p></details>
         <details><summary>Can I use multiple accounts?</summary><p>Yes. Pro supports up to 5 accounts and Elite up to 25. Track live accounts, demos and prop-firm challenges separately or together.</p></details>
         <details><summary>What payment methods do you accept?</summary><p>Plans are billed by card through our payment provider. Every new account starts with a 14-day Pro trial and no card is needed to begin.</p></details>
         <details><summary>Is JPX Traders financial advice?</summary><p>No. JPX Traders is a journaling and copy-trading tool. Leaders are independent traders, not advisers. Trading involves risk and past results do not predict future results.</p></details>

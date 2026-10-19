@@ -20,7 +20,7 @@
       '<div class="empty"><h3>Add your first trades</h3><p>JPX Traders computes every statistic from your real trade history. Pick a way to get trades in.</p>' +
       '<div class="steps">' +
       '<div class="step' + (hasAcct ? ' done' : '') + '"><div class="n">' + (hasAcct ? JPX.icon('check') : '1') + '</div><div><b>Create a trading account</b><span>Name it, set your starting balance and broker.</span></div>' + (hasAcct ? '' : '<button class="btn primary sm" data-go="#/brokers">Add account</button>') + '</div>' +
-      '<div class="step"><div class="n">2</div><div><b>Bring in trades</b><span>Import a CSV from MT4/MT5, sync live from MT5, or log a trade by hand.</span></div><button class="btn sm" data-act="import">Import CSV</button></div>' +
+      '<div class="step"><div class="n">2</div><div><b>Connect your broker</b><span>Enter your MT4/MT5 server and login and your trades import automatically.</span></div><button class="btn sm" data-go="#/brokers">Connect broker</button></div>' +
       '<div class="step"><div class="n">3</div><div><b>Review and journal</b><span>Tag setups, rate execution and note what you would change.</span></div><button class="btn sm" data-act="add">Log a trade</button></div>' +
       '</div></div>';
     bindActions(root);
@@ -28,7 +28,6 @@
 
   function bindActions(root) {
     $$('[data-go]', root).forEach(function (b) { b.addEventListener('click', function () { location.hash = b.dataset.go; }); });
-    $$('[data-act="import"]', root).forEach(function (b) { b.addEventListener('click', function () { JPX.openImport(function () { JPX.route(); }); }); });
     $$('[data-act="add"]', root).forEach(function (b) { b.addEventListener('click', function () { JPX.openTradeForm(null, function () { JPX.route(); }); }); });
   }
 
@@ -95,7 +94,7 @@
       facets = r[1];
       root.innerHTML =
         '<div class="topbar"><div><h1>Trades</h1><div class="sub" id="t-sub"></div></div>' + JPX.filterHTML() +
-        '<button class="btn hide-sm" data-act="import">' + JPX.icon('upload') + 'Import</button><a class="btn hide-sm" id="t-export" href="#">' + JPX.icon('download') + 'Export</a><button class="btn primary" data-act="add">' + JPX.icon('plus') + 'Log trade</button></div>' +
+        '<a class="btn hide-sm" id="t-export" href="#">' + JPX.icon('download') + 'Export</a><button class="btn primary" data-act="add">' + JPX.icon('plus') + 'Log trade</button></div>' +
         '<div class="filters" style="margin-bottom:14px"><input class="input sm" id="t-q" type="search" placeholder="Search symbol, notes, tags" value="' + esc(T.q) + '" style="max-width:260px" aria-label="Search trades">' +
         sel('symbol', 'All symbols', facets.symbols) + sel('side', 'Long and short', [['long', 'Long'], ['short', 'Short']]) + sel('result', 'All results', [['win', 'Winners'], ['loss', 'Losers'], ['be', 'Break-even']]) + (facets.setups.length ? sel('setup', 'All setups', facets.setups) : '') +
         sel('sort', null, [['close_desc', 'Newest first'], ['close_asc', 'Oldest first'], ['net_desc', 'Best P&L'], ['net_asc', 'Worst P&L']]) +
@@ -129,7 +128,7 @@
       $('#t-sub', root).textContent = r.total ? r.total + ' trade' + (r.total === 1 ? '' : 's') + ' · ' + money(r.net, { sign: true }) + ' net · ' + Math.round((r.wins / r.total) * 100) + '% win rate' : '';
       if (!r.total) {
         var filtered = T.q || T.symbol || T.side || T.result || T.setup || S.range !== 'all';
-        body.innerHTML = '<div class="empty"><h3>' + (filtered ? 'No trades match these filters' : 'No trades yet') + '</h3><p>' + (filtered ? 'Clear a filter or widen the date range.' : 'Log a trade by hand, import a CSV, or connect MT5 to sync automatically.') + '</p>' + (filtered ? '' : '<div class="acts"><button class="btn primary" data-act="add">Log a trade</button><button class="btn" data-act="import">Import CSV</button><button class="btn" data-go="#/brokers">Connect MT5</button></div>') + '</div>';
+        body.innerHTML = '<div class="empty"><h3>' + (filtered ? 'No trades match these filters' : 'No trades yet') + '</h3><p>' + (filtered ? 'Clear a filter or widen the date range.' : 'Connect your broker to import trades automatically, or log one by hand.') + '</p>' + (filtered ? '' : '<div class="acts"><button class="btn primary" data-act="add">Log a trade</button><button class="btn" data-go="#/brokers">Connect broker</button></div>') + '</div>';
         bindActions(body); return;
       }
       var allChecked = r.trades.every(function (t) { return T.selected.has(t.id); });
@@ -223,46 +222,4 @@
     return dlg;
   }
 
-  /* ---------------- CSV import ---------------- */
-  JPX.openImport = function (onDone, accountId) {
-    if (!S.accounts.length) { JPX.openTradeForm(null); return; }
-    var text = '', fname = '';
-    JPX.modal({
-      title: 'Import trades from CSV', size: 'wide',
-      body: '<div class="field"><label for="imp-acct">Import into</label><select class="input" id="imp-acct">' + S.accounts.map(function (a) { return '<option value="' + a.id + '"' + (String(accountId || (S.acct !== 'all' ? S.acct : S.accounts[0].id)) === String(a.id) ? ' selected' : '') + '>' + esc(a.name) + (a.utc_offset ? ' (server UTC' + (a.utc_offset > 0 ? '+' : '') + a.utc_offset + ')' : '') + '</option>'; }).join('') + '</select></div>' +
-        '<label class="drop" id="imp-drop" for="imp-file">' + JPX.icon('upload') + '<b id="imp-name">Choose a CSV file or drop it here</b><span class="hint">MT5 / MT4 position history, or any CSV with the columns below</span></label><input type="file" id="imp-file" accept=".csv,.txt,text/csv" class="sr">' +
-        '<div class="hint">Required columns: <span class="code-inline">Symbol</span> <span class="code-inline">Type</span> (buy/sell) <span class="code-inline">Volume</span> <span class="code-inline">Open time</span> <span class="code-inline">Close time</span> <span class="code-inline">Profit</span>. Optional: Ticket, prices, S/L, T/P, Commission, Swap, Setup, Tags, Notes. Times are read in the account\'s broker server time; set its UTC offset in Brokers. Duplicates are skipped, so re-importing is safe. <a href="#" id="imp-tpl">Download a template</a></div>' +
-        '<div id="imp-result"></div>',
-      foot: '<button class="btn" data-close>Close</button><button class="btn primary" id="imp-go" disabled>Import trades</button>',
-      onMount: function (d) {
-        var file = $('#imp-file', d), go = $('#imp-go', d), res = $('#imp-result', d);
-        var pick = function (f) {
-          if (!f) return; if (f.size > 5 * 1024 * 1024) { JPX.toast('File is over 5 MB. Split it into smaller files.', 'err'); return; }
-          var rd = new FileReader();
-          rd.onload = function () { text = String(rd.result); fname = f.name; $('#imp-name', d).textContent = f.name + ' · ' + Math.max(0, text.split(/\r?\n/).filter(Boolean).length - 1) + ' rows'; go.disabled = false; res.innerHTML = ''; };
-          rd.onerror = function () { JPX.toast('Could not read that file', 'err'); };
-          rd.readAsText(f);
-        };
-        file.addEventListener('change', function () { pick(file.files[0]); });
-        var drop = $('#imp-drop', d);
-        ['dragover', 'dragenter'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('over'); }); });
-        ['dragleave', 'drop'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('over'); }); });
-        drop.addEventListener('drop', function (e) { pick(e.dataTransfer.files[0]); });
-        $('#imp-tpl', d).addEventListener('click', function (e) {
-          e.preventDefault();
-          var csv = 'Ticket,Symbol,Type,Volume,Open Time,Open Price,Close Time,Close Price,Commission,Swap,Profit,Setup,Notes\n1001,EURUSD,buy,0.50,2025-03-03 09:30:00,1.0850,2025-03-03 11:05:00,1.0875,-3.5,0,125.00,Breakout,Waited for retest\n';
-          var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'jpx-import-template.csv'; a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
-        });
-        go.addEventListener('click', function () {
-          JPX.busy(go, true, 'Importing…');
-          JPX.api('POST', '/api/import', { account_id: Number($('#imp-acct', d).value), text: text }).then(function (r) {
-            JPX.busy(go, false); go.disabled = true;
-            res.innerHTML = '<div class="panel" style="padding:16px"><b class="' + (r.imported ? 'pos' : '') + '">' + r.imported + ' imported</b> · ' + r.skipped + ' duplicates skipped · ' + (r.errorCount || 0) + ' rows with problems' +
-              (r.errors && r.errors.length ? '<ul style="margin:10px 0 0;padding-left:18px;font-size:13.5px" class="muted">' + r.errors.map(function (e) { return '<li>Row ' + e.row + ': ' + esc(e.error) + '</li>'; }).join('') + (r.errorCount > r.errors.length ? '<li>…and ' + (r.errorCount - r.errors.length) + ' more</li>' : '') + '</ul>' : '') + '</div>';
-            if (r.imported) { JPX.toast('Imported ' + r.imported + ' trades'); JPX.refreshAccounts(); if (onDone) onDone(); }
-          }, function (e) { JPX.busy(go, false); res.innerHTML = '<div class="form-error">' + esc(e.message) + '</div>'; });
-        });
-      },
-    });
-  };
 })();

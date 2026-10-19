@@ -54,21 +54,70 @@
   };
 
   /* ---------------- Brokers / Accounts ---------------- */
-  var PLAT = { manual: 'Manual', mt5: 'MetaTrader 5', mt4: 'MetaTrader 4', csv: 'CSV imports', other: 'Other' };
+  var PLAT = { manual: 'Manual', mt5: 'MetaTrader 5', mt4: 'MetaTrader 4', other: 'Other' };
+  var brokerTimer = null;
+  function autoChip(a) {
+    if (!a.auto) return '<span class="muted">Not connected</span>';
+    if (a.auto.status === 'connected') return '<span class="chip pos">Auto-importing</span><span class="sub">' + (a.auto.last_poll ? 'Synced ' + JPX.fmtDateTime(a.auto.last_poll) : 'First sync running') + ' · login ' + esc(a.auto.login || '') + '</span>';
+    if (a.auto.status === 'error') return '<span class="chip neg">Connection problem</span><span class="sub" style="max-width:260px;white-space:normal">' + esc(a.auto.error || 'Could not connect') + '</span>';
+    return '<span class="chip warn">Connecting to broker…</span><span class="sub">This can take a minute or two</span>';
+  }
   JPX.views.brokers = function (root) {
-    return JPX.refreshAccounts().then(function (accts) {
-      root.innerHTML = '<div class="topbar"><div><h1>Brokers</h1><div class="sub">Trading accounts and how their trades get in</div></div><button class="btn primary" id="add-acct">' + JPX.icon('plus') + 'Add account</button></div>' +
-        (accts.length ? '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Account</th><th class="hide-sm">Platform</th><th class="r">Trades</th><th class="r hide-sm">Net P&amp;L</th><th class="hide-sm">Live sync</th><th></th></tr></thead><tbody>' + accts.map(function (a) {
-          return '<tr style="cursor:default"><td><span class="sym">' + esc(a.name) + '</span><span class="sub">' + esc(a.broker || 'No broker set') + ' · ' + esc(a.currency) + (a.starting_balance ? ' · starts ' + money(a.starting_balance, { cur: a.currency, dec: 0 }) : '') + '</span></td><td class="hide-sm">' + esc(PLAT[a.platform] || a.platform) + '</td><td class="r num">' + a.trades + '</td><td class="r num hide-sm ' + JPX.cls(a.net) + '">' + money(a.net, { sign: true, cur: a.currency }) + '</td><td class="hide-sm">' + (a.has_api_key ? '<span class="chip ' + (a.last_sync ? 'pos' : 'warn') + '">' + (a.last_sync ? 'Synced ' + JPX.fmtDateTime(a.last_sync) : 'Key issued, waiting for first sync') + '</span>' : '<span class="muted">Not connected</span>') + '</td><td class="r" style="white-space:nowrap"><button class="btn sm" data-connect="' + a.id + '">' + JPX.icon('brokers') + 'Connect MT5</button> <button class="btn sm" data-import="' + a.id + '" title="Import CSV">' + JPX.icon('upload') + '<span class="hide-sm">Import</span></button> <button class="btn sm icon" data-edit="' + a.id + '" aria-label="Edit ' + esc(a.name) + '">' + JPX.icon('edit') + '</button></td></tr>';
-        }).join('') + '</tbody></table></div>' : '<div class="empty"><h3>No accounts yet</h3><p>An account holds a set of trades: a live account, a prop-firm challenge, a demo. Create one to start.</p><div class="acts"><button class="btn primary" data-add>Add account</button></div></div>') +
-        '<section class="sec" style="margin-top:28px"><div class="sec-head"><h2>Ways to get trades in</h2></div><div class="cols-3"><div><b>MetaTrader 5, live</b><p class="muted" style="margin-top:6px">Install the JPX Sync Expert Advisor. Every position you close is sent to your journal within seconds. Needs an API key per account.</p></div><div><b>CSV from MT4 / MT5</b><p class="muted" style="margin-top:6px">Export your account history as CSV and import it. Duplicates are skipped, so you can re-import any time.</p></div><div><b>Manual</b><p class="muted" style="margin-top:6px">Log trades by hand from any broker or market. Works for futures, stocks and crypto too.</p></div></div></section>';
-      var add = $('#add-acct', root); add.addEventListener('click', function () { acctForm(null); });
+    clearTimeout(brokerTimer);
+    return Promise.all([JPX.refreshAccounts(), JPX.get('/api/metaapi/config')]).then(function (res) {
+      var accts = res[0], cfg = res[1];
+      root.innerHTML = '<div class="topbar"><div><h1>Brokers</h1><div class="sub">Connect your broker once and your trades import automatically</div></div><button class="btn primary" id="add-acct">' + JPX.icon('plus') + 'Add account</button></div>' +
+        (cfg.enabled ? '' : '<div class="form-error" style="margin-bottom:18px;background:var(--warn-soft);color:var(--warn)">Automatic import is not switched on for this site yet. The site owner needs to add the <b>METAAPI_TOKEN</b> setting (see the README), then broker connections will work.</div>') +
+        (accts.length ? '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Account</th><th class="hide-sm">Platform</th><th class="r">Trades</th><th class="r hide-sm">Net P&amp;L</th><th>Broker connection</th><th></th></tr></thead><tbody>' + accts.map(function (a) {
+          var act = !a.auto ? '<button class="btn primary sm" data-link="' + a.id + '">' + JPX.icon('brokers') + 'Connect broker</button>' :
+            (a.auto.status === 'error' ? '<button class="btn primary sm" data-relink="' + a.id + '">Reconnect</button>' : '<button class="btn sm" data-sync="' + a.id + '">Sync now</button> <button class="btn sm" data-unlink="' + a.id + '">Disconnect</button>');
+          return '<tr style="cursor:default"><td><span class="sym">' + esc(a.name) + '</span><span class="sub">' + esc(a.auto && a.auto.server ? a.auto.server : (a.broker || 'No broker set')) + ' · ' + esc(a.currency) + (a.starting_balance ? ' · starts ' + money(a.starting_balance, { cur: a.currency, dec: 0 }) : '') + '</span></td><td class="hide-sm">' + esc(PLAT[a.platform] || a.platform) + '</td><td class="r num">' + a.trades + '</td><td class="r num hide-sm ' + JPX.cls(a.net) + '">' + money(a.net, { sign: true, cur: a.currency }) + '</td><td>' + autoChip(a) + '</td><td class="r" style="white-space:nowrap">' + act + ' <button class="btn sm icon" data-edit="' + a.id + '" aria-label="Edit ' + esc(a.name) + '">' + JPX.icon('edit') + '</button></td></tr>';
+        }).join('') + '</tbody></table></div>' : '<div class="empty"><h3>No accounts yet</h3><p>An account holds a set of trades: a live account, a prop-firm challenge, a demo. Create one, then connect its broker.</p><div class="acts"><button class="btn primary" data-add>Add account</button></div></div>') +
+        '<section class="sec" style="margin-top:28px"><div class="sec-head"><h2>How automatic import works</h2></div><div class="cols-3"><div><b>1. Connect your broker</b><p class="muted" style="margin-top:6px">Choose MT4 or MT5, then enter your broker server, account login and password. An investor (read-only) password is enough and is safest.</p></div><div><b>2. We import your history</b><p class="muted" style="margin-top:6px">JPX links the account through MetaApi and pulls in your recent closed trades, with exact times, commission and swap.</p></div><div><b>3. New trades arrive on their own</b><p class="muted" style="margin-top:6px">Each trade you place and close shows up in your journal within about a minute. Your password is sent securely to MetaApi and never stored by JPX.</p></div></div></section>';
+      $('#add-acct', root).addEventListener('click', function () { acctForm(null); });
       var a2 = $('[data-add]', root); if (a2) a2.addEventListener('click', function () { acctForm(null); });
-      $$('[data-edit]', root).forEach(function (b) { b.addEventListener('click', function () { acctForm(accts.filter(function (a) { return a.id === Number(b.dataset.edit); })[0]); }); });
-      $$('[data-import]', root).forEach(function (b) { b.addEventListener('click', function () { JPX.openImport(function () { JPX.route(); }, Number(b.dataset.import)); }); });
-      $$('[data-connect]', root).forEach(function (b) { b.addEventListener('click', function () { connectModal(accts.filter(function (a) { return a.id === Number(b.dataset.connect); })[0]); }); });
+      var byId = function (id) { return accts.filter(function (a) { return a.id === Number(id); })[0]; };
+      $$('[data-edit]', root).forEach(function (b) { b.addEventListener('click', function () { acctForm(byId(b.dataset.edit)); }); });
+      $$('[data-link]', root).forEach(function (b) { b.addEventListener('click', function () { linkModal(byId(b.dataset.link), cfg.enabled); }); });
+      $$('[data-sync]', root).forEach(function (b) { b.addEventListener('click', function () { JPX.busy(b, true, 'Syncing…'); JPX.api('POST', '/api/accounts/' + b.dataset.sync + '/metaapi/sync').then(function (r) { JPX.toast(r.status === 'connected' ? 'Synced. ' + (r.inserted || 0) + ' new trade' + (r.inserted === 1 ? '' : 's') : (r.message || 'Still connecting')); JPX.route(); }, function (e) { JPX.busy(b, false); JPX.toast(e.message, 'err'); }); }); });
+      var unlink = function (id, then) { JPX.confirm({ title: 'Disconnect this broker?', message: 'Automatic import stops and the cloud connection is removed. Trades already imported stay in your journal.', confirm: 'Disconnect', danger: true }).then(function (ok) { if (ok) JPX.api('DELETE', '/api/accounts/' + id + '/metaapi').then(function () { JPX.toast('Broker disconnected'); if (then) then(); else JPX.route(); }, function (e) { JPX.toast(e.message, 'err'); }); }); };
+      $$('[data-unlink]', root).forEach(function (b) { b.addEventListener('click', function () { unlink(b.dataset.unlink); }); });
+      $$('[data-relink]', root).forEach(function (b) { b.addEventListener('click', function () { JPX.api('DELETE', '/api/accounts/' + b.dataset.relink + '/metaapi').then(function () { return JPX.refreshAccounts(); }).then(function () { linkModal(Object.assign({}, byId(b.dataset.relink), { auto: null }), cfg.enabled); }, function (e) { JPX.toast(e.message, 'err'); }); }); });
+      if (accts.some(function (a) { return a.auto && a.auto.status === 'connecting'; })) brokerTimer = setTimeout(function () { if (location.hash.indexOf('#/brokers') === 0 && !document.querySelector('dialog[open]')) JPX.route(); }, 8000);
     });
   };
+
+  function linkModal(a, enabled) {
+    var platform = a.platform === 'mt4' ? 'mt4' : 'mt5', stop = false;
+    JPX.modal({
+      title: 'Connect broker · ' + a.name, size: 'narrow',
+      body: '<div id="lk-form" style="display:grid;gap:16px"><div class="field"><span class="lbl">Platform</span><div class="seg" id="lk-plat"><button type="button" data-v="mt5" aria-pressed="' + (platform === 'mt5') + '">MetaTrader 5</button><button type="button" data-v="mt4" aria-pressed="' + (platform === 'mt4') + '">MetaTrader 4</button></div></div>' +
+        '<div class="field"><label for="lk-server">Broker server</label><input class="input" id="lk-server" autocomplete="off" placeholder="e.g. ICMarketsSC-Live" value="' + esc(a.broker || '') + '"><span class="hint">Shown in MetaTrader under File > Login to Trade Account.</span></div>' +
+        '<div class="field"><label for="lk-login">Account login</label><input class="input" id="lk-login" inputmode="numeric" autocomplete="off" placeholder="e.g. 7654321"></div>' +
+        '<div class="field"><label for="lk-pw">Password</label><input class="input" id="lk-pw" type="password" autocomplete="off"><span class="hint">Use your <b>investor (read-only)</b> password if you have one. It is sent securely to MetaApi to link your account and is <b>never stored</b> by JPX.</span></div>' +
+        (enabled ? '' : '<div class="form-error" style="background:var(--warn-soft);color:var(--warn)">Automatic import is not switched on for this site yet (the owner must add METAAPI_TOKEN).</div>') + '<div class="form-error" id="lk-err" hidden></div></div><div id="lk-prog" hidden style="text-align:center;padding:18px 4px"><div class="spin" style="margin:0 auto 14px"></div><b id="lk-msg">Connecting to your broker…</b><p class="muted" style="margin-top:6px">This usually takes under a minute. You can close this window; we keep working in the background.</p></div>',
+      foot: '<button class="btn" data-close>Close</button><button class="btn primary" id="lk-go"' + (enabled ? '' : ' disabled') + '>Connect and import</button>',
+      onClose: function () { stop = true; JPX.route(); },
+      onMount: function (d) {
+        $$('#lk-plat button', d).forEach(function (b) { b.addEventListener('click', function () { platform = b.dataset.v; $$('#lk-plat button', d).forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }); });
+        $('#lk-go', d).addEventListener('click', function () {
+          var btn = $('#lk-go', d), err = $('#lk-err', d); err.hidden = true; JPX.busy(btn, true, 'Connecting…');
+          JPX.api('POST', '/api/accounts/' + a.id + '/metaapi', { platform: platform, server: $('#lk-server', d).value, login: $('#lk-login', d).value.trim(), password: $('#lk-pw', d).value }).then(function () {
+            $('#lk-pw', d).value = ''; $('#lk-form', d).hidden = true; $('#lk-prog', d).hidden = false; btn.hidden = true;
+            var tries = 0;
+            (function poll() {
+              if (stop) return; tries++;
+              JPX.api('POST', '/api/accounts/' + a.id + '/metaapi/sync').then(function (r) {
+                if (r.status === 'connected') { $('#lk-prog', d).innerHTML = '<div style="font-size:40px">✓</div><b>Connected</b><p class="muted" style="margin-top:6px">Imported ' + (r.inserted || 0) + ' trade' + (r.inserted === 1 ? '' : 's') + '. New trades will arrive automatically.</p>'; JPX.toast('Broker connected'); return; }
+                if (tries > 40) { $('#lk-msg', d).textContent = 'Still connecting…'; return; }
+                setTimeout(poll, 5000);
+              }, function (e) { $('#lk-prog', d).innerHTML = '<b class="neg">Could not connect</b><p class="muted" style="margin-top:6px">' + esc(e.message) + '</p>'; });
+            })();
+          }, function (e) { JPX.busy(btn, false); err.textContent = e.message; err.hidden = false; });
+        });
+      },
+    });
+  }
 
   function acctForm(a) {
     var edit = !!a; a = a || { name: '', broker: '', platform: 'mt5', currency: S.user.currency, starting_balance: '', utc_offset: 0 };
@@ -79,9 +128,9 @@
         '<div class="field"><label for="a-plat">Platform</label><select class="input" id="a-plat" name="platform">' + Object.keys(PLAT).map(function (k) { return '<option value="' + k + '"' + (a.platform === k ? ' selected' : '') + '>' + PLAT[k] + '</option>'; }).join('') + '</select></div>' +
         '<div class="field"><label for="a-bal">Starting balance</label><input class="input" id="a-bal" name="starting_balance" type="number" step="any" min="0" inputmode="decimal" value="' + esc(a.starting_balance) + '" placeholder="10000"></div>' +
         '<div class="field"><label for="a-cur">Currency</label><input class="input" id="a-cur" name="currency" maxlength="8" value="' + esc(a.currency) + '" style="text-transform:uppercase"></div>' +
-        '<div class="field full"><label for="a-off">Broker server time (UTC offset in hours)</label><input class="input" id="a-off" name="utc_offset" type="number" step="0.5" min="-14" max="14" value="' + esc(a.utc_offset) + '"><span class="hint">Used when importing CSV files, which carry the broker\'s server time. Many brokers use UTC+2 (UTC+3 in summer). Live MT5 sync sends exact UTC and ignores this.</span></div>' +
+        '<div class="field full"><label for="a-off">Broker server time (UTC offset in hours)</label><input class="input" id="a-off" name="utc_offset" type="number" step="0.5" min="-14" max="14" value="' + esc(a.utc_offset) + '"><span class="hint">Only used for trades you log by hand. Automatic broker import already carries exact UTC times.</span></div>' +
         '<div class="form-error full" id="af-err" hidden></div></form>',
-      foot: (edit ? '<button class="btn danger" id="af-del" style="margin-right:auto">' + JPX.icon('trash') + 'Delete</button>' : '') + '<button class="btn" data-close>Cancel</button><button class="btn primary" id="af-save">' + (edit ? 'Save changes' : 'Create account') + '</button>',
+      foot: (edit ? '<button class="btn danger" id="af-del" aria-label="Delete account">' + JPX.icon('trash') + '<span class="hide-sm">Delete</span></button><button class="btn ghost" id="af-ea" style="margin-right:auto">Advanced: EA key</button>' : '') + '<button class="btn" data-close>Cancel</button><button class="btn primary" id="af-save">' + (edit ? 'Save changes' : 'Create account') + '</button>',
       onMount: function (d) {
         var form = $('#af', d), save = function () {
           var data = {}, err = $('#af-err', d); err.hidden = true; Array.prototype.forEach.call(form.elements, function (el) { if (el.name) data[el.name] = el.value; });
@@ -91,6 +140,7 @@
           JPX.api(edit ? 'PATCH' : 'POST', edit ? '/api/accounts/' + a.id : '/api/accounts', data).then(function () { JPX.toast(edit ? 'Account updated' : 'Account created'); d.close2(); JPX.route(); }, function (e) { JPX.busy(btn, false); err.textContent = e.message; err.hidden = false; });
         };
         $('#af-save', d).addEventListener('click', save); form.addEventListener('submit', function (e) { e.preventDefault(); save(); });
+        var ea = $('#af-ea', d); if (ea) ea.addEventListener('click', function () { d.close2(); connectModal(a); });
         var del = $('#af-del', d); if (del) del.addEventListener('click', function () {
           JPX.confirm({ title: 'Delete “' + a.name + '”?', message: 'This also deletes its ' + a.trades + ' trade' + (a.trades === 1 ? '' : 's') + ' and revokes its API key. This cannot be undone.', confirm: 'Delete account', danger: true }).then(function (ok) {
             if (ok) JPX.api('DELETE', '/api/accounts/' + a.id).then(function () { JPX.toast('Account deleted'); d.close2(); JPX.route(); }, function (e) { JPX.toast(e.message, 'err'); });
@@ -103,7 +153,7 @@
   function connectModal(a) {
     var url = location.origin + '/api/ingest';
     JPX.modal({
-      title: 'Connect ' + a.name + ' to MetaTrader 5', size: 'wide',
+      title: 'Advanced: Expert Advisor and API key · ' + a.name, size: 'wide',
       body: '<div class="field"><span class="lbl">1. Create an API key for this account</span><div id="key-box">' + (a.has_api_key ? '<p class="muted">A key starting with <span class="code-inline">' + esc(a.api_key_prefix) + '…</span> is active. Keys are shown only once; generate a new one to replace it.</p>' : '') + '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn primary sm" id="gen-key">' + JPX.icon('key') + (a.has_api_key ? 'Generate a new key' : 'Generate API key') + '</button>' + (a.has_api_key ? '<button class="btn danger sm" id="rev-key">Revoke key</button>' : '') + '</div></div></div>' +
         '<div class="field"><span class="lbl">2. Install the Expert Advisor</span><p class="muted">Download <a href="/jpx-sync.mq5" download>jpx-sync.mq5</a>, save it in MetaTrader\'s <span class="code-inline">MQL5/Experts</span> folder (File → Open Data Folder), then compile it in MetaEditor.</p></div>' +
         '<div class="field"><span class="lbl">3. Allow the server in MetaTrader</span><p class="muted">Tools → Options → Expert Advisors → tick “Allow WebRequest for listed URL” and add:</p><div class="copy-row"><pre class="code">' + esc(location.origin) + '</pre><button class="btn sm icon" data-copy="' + esc(location.origin) + '" aria-label="Copy URL">' + JPX.icon('copy') + '</button></div></div>' +

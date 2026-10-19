@@ -85,7 +85,7 @@
   run();
 
   /* ---------- live data: plans, reviews, leaderboard, stats ---------- */
-  var yearly = false, plans = [], content = { social: {}, sample_reviews: [] };
+  var yearly = false, plans = [];
   var fetchJson = function (u) { return fetch(u).then(function (r) { if (!r.ok) throw new Error(u); return r.json(); }); };
   function renderPlans() {
     $('plans').innerHTML = plans.map(function (p, i) {
@@ -108,12 +108,14 @@
   $('car-prev').addEventListener('click', function () { slide(-1); }); $('car-next').addEventListener('click', function () { slide(1); });
   track.addEventListener('scroll', function () { requestAnimationFrame(updateCar); }, { passive: true });
   track.addEventListener('keydown', function (e) { if (e.key === 'ArrowRight') slide(1); if (e.key === 'ArrowLeft') slide(-1); });
-  function renderReviews(real) {
-    var list = real.map(function (r) { return { quote: r.quote, name: r.name, role: r.role || 'Trader', rating: r.rating, sample: false }; });
-    var samples = (content.sample_reviews || []).map(function (r) { return { quote: r.quote, name: r.name, role: r.role, rating: 5, sample: true }; });
-    list = list.concat(samples).slice(0, Math.max(4, real.length));
+  function renderReviews(list) {
+    var sec = $('testimonials');
+    if (!list.length) { sec.hidden = true; return; }
+    sec.hidden = false;
     track.innerHTML = list.map(function (t) {
-      return '<figure class="quote glass"><div class="stars" aria-label="' + t.rating + ' out of 5 stars">' + '★'.repeat(t.rating) + '<span style="opacity:.25">' + '★'.repeat(5 - t.rating) + '</span></div><blockquote>' + esc(t.quote) + '</blockquote><figcaption><span class="av" aria-hidden="true">' + esc((t.name || '?').charAt(0).toUpperCase()) + '</span><span class="who"><b>' + esc(t.name) + '</b><span>' + esc(t.role) + '</span></span>' + (t.sample ? '<span class="sample">Sample</span>' : '') + '</figcaption></figure>';
+      var rating = Math.max(1, Math.min(5, t.rating || 5));
+      var face = t.avatar ? '<img class="av" src="' + esc(t.avatar) + '" alt="" width="36" height="36">' : '<span class="av" aria-hidden="true">' + esc((t.name || '?').charAt(0).toUpperCase()) + '</span>';
+      return '<figure class="quote glass"><div class="stars" aria-label="' + rating + ' out of 5 stars">' + '★'.repeat(rating) + '<span style="opacity:.25">' + '★'.repeat(5 - rating) + '</span></div><blockquote>' + esc(t.quote) + '</blockquote><figcaption>' + face + '<span class="who"><b>' + esc(t.name) + '</b><span>' + esc(t.role || 'Trader') + '</span></span></figcaption></figure>';
     }).join('');
     updateCar();
   }
@@ -125,18 +127,20 @@
     return '<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true"><path d="' + d + '" fill="none" stroke="' + (pts[pts.length - 1] >= pts[0] ? '#0b9a78' : '#d9482b') + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   }
   var hue = function (n) { var h = 0; for (var i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) % 360; return h; };
-  var av = function (n, s) { return '<span class="lav" style="width:' + s + 'px;height:' + s + 'px;background:linear-gradient(135deg,hsl(' + hue(n) + ',70%,48%),hsl(' + ((hue(n) + 50) % 360) + ',70%,55%))">' + esc(n.charAt(0).toUpperCase()) + '</span>'; };
+  var av = function (n, s, img) { if (img) return '<img class="lav" src="' + esc(img) + '" alt="" width="' + s + '" height="' + s + '" style="width:' + s + 'px;height:' + s + 'px;object-fit:cover">'; return '<span class="lav" style="width:' + s + 'px;height:' + s + 'px;background:linear-gradient(135deg,hsl(' + hue(n) + ',70%,48%),hsl(' + ((hue(n) + 50) % 360) + ',70%,55%))">' + esc(n.charAt(0).toUpperCase()) + '</span>'; };
   function renderBoard(ls) {
-    if (!ls.length) { $('board').innerHTML = '<div class="board-empty"><b>No public traders yet</b><p>Be the first to share a strategy. Create an account, connect your trades and publish from Copy trading.</p><a class="btn pill outline" href="/register">Share my strategy</a></div>'; return; }
+    var sec = $('leaderboard');
+    if (!ls.length) { sec.hidden = true; return; }
+    sec.hidden = false;
     $('board').innerHTML = '<div class="board-rows">' + ls.map(function (x) {
-      return '<div class="board-row"><span class="rk num">' + x.rank + '</span>' + av(x.alias, 40) + '<div class="nm"><b>' + esc(x.alias) + (x.elite_only ? ' <i class="el">Elite</i>' : '') + '</b><span>' + esc(x.bio || '') + '</span></div><div class="mt hide-sm"><small>Win rate</small><b class="num">' + x.win_rate + '%</b></div><div class="mt hide-sm"><small>Trades</small><b class="num">' + x.trades + '</b></div><div class="mt hide-sm"><small>Followers</small><b class="num">' + x.followers + '</b></div><div class="tr hide-sm">' + spark(x.spark, 96, 30) + '</div><div class="gn num ' + (x.gain >= 0 ? 'pos' : 'neg') + '">' + pct(x.gain) + '<small>30 days</small></div><a class="btn pill grad sm" href="/register">Copy</a></div>';
+      return '<div class="board-row"><span class="rk num">' + x.rank + '</span>' + av(x.alias, 44, x.avatar) + '<div class="nm"><b>' + esc(x.alias) + (x.elite_only ? ' <i class="el">Elite</i>' : '') + '</b><span>' + esc(x.bio || '') + '</span></div><div class="mt hide-sm"><small>Win rate</small><b class="num">' + x.win_rate + '%</b></div><div class="mt hide-sm"><small>Trades</small><b class="num">' + x.trades + '</b></div><div class="mt hide-sm"><small>Followers</small><b class="num">' + x.followers.toLocaleString('en-US') + '</b></div><div class="tr hide-sm">' + spark(x.spark, 96, 30) + '</div><div class="gn num ' + (x.gain >= 0 ? 'pos' : 'neg') + '">' + pct(x.gain) + '<small>30 days</small></div><a class="btn pill grad sm" href="/register">Copy</a></div>';
     }).join('') + '</div>';
   }
-  Promise.all([fetchJson('/content.json').catch(function () { return content; }), fetchJson('/api/public/reviews').catch(function () { return { reviews: [] }; })]).then(function (res) { content = res[0]; renderReviews(res[1].reviews); });
+  fetchJson('/api/public/reviews').then(function (r) { renderReviews(r.reviews); }, function () { renderReviews([]); });
   fetchJson('/api/public/leaders').then(function (r) {
     renderBoard(r.leaders);
-    $('people-stack').innerHTML = r.leaders.slice(0, 4).map(function (x) { return av(x.alias, 34); }).join('');
-  }, function () { $('board').innerHTML = '<p class="board-empty">Leaderboard could not be loaded. Please refresh.</p>'; });
+    $('people-stack').innerHTML = r.leaders.slice(0, 4).map(function (x) { return av(x.alias, 34, x.avatar); }).join('');
+  }, function () { renderBoard([]); });
   var site = null;
   fetchJson('/api/public/site').then(function (r) {
     site = r.site;

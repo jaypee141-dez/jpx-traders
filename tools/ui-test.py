@@ -21,9 +21,12 @@ with sync_playwright() as p:
     check('Add your first trades' in pg.inner_text('#view'), 'onboarding shown for new user')
     pg.goto(BASE + '/app#/brokers'); pg.wait_for_selector('#add-acct'); pg.click('#add-acct')
     pg.fill('#a-name', 'Live IC'); pg.fill('#a-bal', '10000'); pg.click('#af-save'); pg.wait_for_selector('text=Live IC')
-    pg.click('[data-import]'); pg.set_input_files('#imp-file', '/tmp/seed.csv'); pg.click('#imp-go'); pg.wait_for_selector('#imp-result .panel')
-    txt = pg.inner_text('#imp-result'); print(txt); check('60 imported' in txt, '60 imported')
-    pg.click('.modal-head [data-close]')
+    seed = open('/tmp/seed.csv').read(); H = {'Content-Type': 'application/json', 'X-Requested-With': 'jpx'}
+    acct_id = pg.request.get(BASE + '/api/accounts').json()['accounts'][0]['id']
+    imp = pg.request.post(BASE + '/api/import', headers=H, data={'account_id': acct_id, 'text': seed}).json(); print(imp['imported'], 'imported'); check(imp['imported'] == 60, '60 trades seeded')
+    pg.reload(); pg.wait_for_selector('[data-link]')
+    check('Connect broker' in pg.inner_text('#view') and 'CSV' not in pg.inner_text('#view'), 'brokers page offers broker connection, no CSV import')
+    pg.click('[data-link]'); pg.wait_for_selector('#lk-go'); check(pg.locator('#lk-server').count() == 1 and pg.locator('#lk-login').count() == 1 and pg.locator('#lk-pw').count() == 1, 'broker connect form has server, login, password'); pg.screenshot(path='/tmp/s-connect.png'); pg.keyboard.press('Escape')
     for name in ['dashboard', 'trades', 'copy', 'calendar', 'journal', 'analytics', 'risk', 'brokers', 'billing', 'support', 'settings', 'admin']:
         pg.goto(BASE + '/app#/' + name); pg.wait_for_timeout(1000)
         check(pg.locator('.spin').count() == 0, name + ' finished loading')
@@ -59,13 +62,15 @@ with sync_playwright() as p:
     pg.screenshot(path='/tmp/s-copy.png', full_page=True)
     # ---- billing: payments not configured -> opens a support ticket form
     pg.goto(BASE + '/app#/billing'); pg.wait_for_selector('[data-plan]'); check('Pro' in pg.inner_text('#view') and 'trial' in pg.inner_text('#view').lower(), 'billing shows trial')
-    pg.click('[data-plan=elite]'); pg.wait_for_selector('#t-go'); check('elite' in pg.input_value('#t-sub').lower(), 'plan request prefilled'); pg.click('#t-go'); pg.wait_for_selector('.toast')
+    pg.click('[data-plan=elite]'); pg.wait_for_selector('#t-go'); check('elite' in pg.input_value('#t-sub').lower(), 'plan request prefilled'); pg.click('#t-go'); pg.wait_for_selector('.toast >> text=We will reply'); pg.wait_for_timeout(3600)
     pg.goto(BASE + '/app#/support'); pg.wait_for_selector('[data-t]'); pg.click('[data-t]'); pg.wait_for_selector('#th-msg'); pg.fill('#th-msg', 'Any update?'); pg.click('#th-send'); pg.wait_for_timeout(500); check('Any update?' in pg.inner_text('#th-list'), 'ticket reply posted'); pg.keyboard.press('Escape')
-    pg.click('#rv-r [data-v="4"]'); pg.fill('#rv-q', 'Copy trading mirrors straight into my journal. Very handy.'); pg.fill('#rv-role', 'Forex trader'); pg.click('#rv button[type=submit]'); pg.wait_for_selector('.toast')
+    pg.click('#rv-r [data-v="4"]'); pg.fill('#rv-q', 'Copy trading mirrors straight into my journal. Very handy.'); pg.fill('#rv-role', 'Forex trader'); pg.click('#rv button[type=submit]'); pg.wait_for_selector('.toast >> text=review will appear')
     # ---- admin: sees ticket + review, approves it; landing page then shows it
     pg.goto(BASE + '/app#/admin'); pg.wait_for_selector('[data-at]'); check(pg.locator('[data-at]').count() == 1, 'admin sees the ticket'); pg.click('[data-at]'); pg.wait_for_selector('#th-msg'); pg.fill('#th-msg', 'Payments will be enabled shortly.'); pg.click('#th-send'); pg.wait_for_timeout(500); pg.keyboard.press('Escape')
     pg.wait_for_selector('[data-rv=approved]'); pg.click('[data-rv=approved]'); pg.wait_for_selector('.chip.pos >> text=approved')
     lp = ctx.new_page(); lp.goto(BASE + '/'); lp.wait_for_selector('.quote'); check('Hiro T.' in lp.inner_text('#quotes') or 'Hiro' in lp.inner_text('#quotes'), 'approved review appears on landing page'); lp.screenshot(path='/tmp/s-landing-reviews.png'); lp.close()
+    pg.goto(BASE + '/app#/admin'); pg.wait_for_selector('#lb-add'); check(pg.locator('[data-fe]').count() == 5, 'admin lists the 5 demo traders'); check('Download database backup' in pg.inner_text('#view'), 'admin has backup download')
+    pg.click('#tm-add'); pg.wait_for_selector('#tm-go'); pg.fill('#tm-name', 'Jane Doe'); pg.fill('#tm-role', 'Forex trader'); pg.fill('#tm-quote', 'A real quote from a customer who agreed to be quoted.'); pg.click('#tm-go'); pg.wait_for_selector('[data-te]')
     pg.goto(BASE + '/app#/admin'); pg.wait_for_selector('#site-form'); pg.fill('#social_telegram', 'https://t.me/jpxtraders'); pg.fill('#social_youtube', 'https://youtube.com/@jpx'); pg.fill('#stat_number', '12,500+'); pg.click('#site-form button[type=submit]'); pg.wait_for_selector('.toast')
     lp2 = ctx.new_page(); lp2.goto(BASE + '/'); lp2.wait_for_selector('.lp-foot .social a'); lp2.wait_for_timeout(500)
     check(lp2.locator('.lp-foot .social a').count() == 2 and lp2.locator('.lp-foot .social span.off').count() == 2, 'footer shows 4 icons, 2 linked from admin settings')

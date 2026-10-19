@@ -1,0 +1,35 @@
+# Render blueprint. Commit this file, then in Render choose New > Blueprint.
+# A persistent disk is REQUIRED so user data survives restarts and redeploys (needs a paid instance).
+services:
+  - type: web
+    name: jpx-traders
+    runtime: node
+    plan: starter
+    buildCommand: echo "nothing to build"
+    startCommand: node --no-warnings server.js
+    healthCheckPath: /api/health
+    disk:
+      name: jpx-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 22.12.0
+      - key: JPX_DATA_DIR
+        value: /var/data
+      - key: ADMIN_EMAIL
+        value: jpee49275@gmail.com
+      - key: COOKIE_SECURE
+        value: "1"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: PUBLIC_URL
+        sync: false
+      - key: METAAPI_TOKEN
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PRICES
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false

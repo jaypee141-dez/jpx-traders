@@ -134,7 +134,7 @@ function ownedAccount(user, id) {
 }
 function publicAccount(a) {
   const stats = q.get('SELECT COUNT(*) AS trades, COALESCE(SUM(net),0) AS net FROM trades WHERE account_id = ?', a.id);
-  return { id: a.id, name: a.name, broker: a.broker, platform: a.platform, currency: a.currency, starting_balance: a.starting_balance, utc_offset: a.utc_offset, api_key_prefix: a.api_key_prefix, has_api_key: !!a.api_key_hash, last_sync: a.last_sync, created_at: a.created_at, trades: stats.trades, net: Math.round(stats.net * 100) / 100 };
+  return { id: a.id, name: a.name, broker: a.broker, platform: a.platform, currency: a.currency, starting_balance: a.starting_balance, utc_offset: a.utc_offset, api_key_prefix: a.api_key_prefix, has_api_key: !!a.api_key_hash, last_sync: a.last_sync, created_at: a.created_at, trades: stats.trades, net: Math.round(stats.net * 100) / 100, auto: a.metaapi_id ? { status: a.metaapi_status, login: a.metaapi_login, server: a.metaapi_server, error: a.metaapi_error, last_poll: a.last_poll } : null };
 }
 
 function insertTrade(userId, accountId, t, source) {
@@ -259,6 +259,7 @@ route('DELETE', '/api/me', async (ctx) => {
   const u = requireUser(ctx);
   if (!(await verifyPassword(String(ctx.body.password || ''), u.password_hash))) throw bad('Password is incorrect');
   if (u.role === 'admin' && q.get("SELECT COUNT(*) AS n FROM users WHERE role='admin' AND status='active'").n <= 1) throw bad('You are the only admin. Promote another user before deleting your account.');
+  for (const x of q.all('SELECT metaapi_id FROM accounts WHERE user_id = ? AND metaapi_id IS NOT NULL', u.id)) require('./lib/metaapi').removeAccount(x.metaapi_id);
   q.run('DELETE FROM users WHERE id = ?', u.id);
   return { status: 200, headers: { 'Set-Cookie': clearCookie(ctx.req) }, body: { ok: true } };
 });
@@ -298,6 +299,7 @@ route('PATCH', '/api/accounts/:id', (ctx) => {
 });
 route('DELETE', '/api/accounts/:id', (ctx) => {
   const u = requireUser(ctx); const a = ownedAccount(u, ctx.params.id);
+  require('./lib/metaapi').removeAccount(a.metaapi_id); // stop the cloud connection (and its billing) in the background
   q.run('DELETE FROM accounts WHERE id = ?', a.id);
   return { ok: true };
 });
@@ -400,19 +402,7 @@ route('POST', '/api/import', (ctx) => {
   return { imported, skipped, errors: errors.slice(0, 20), errorCount: errors.length };
 });
 
-// ---- Broker ingest (MT5 Expert Advisor / any HTTP client) — API-key authenticated
-route('POST', '/api/ingest', (ctx) => {
-  const key = String(ctx.req.headers['x-api-key'] || '');
-  if (!/^jpx_[0-9a-f]{48}$/.test(key)) throw new HttpError(401, 'Missing or malformed X-API-Key header');
-  rateLimit(`ing:${sha(key)}`, 120, 60000);
-  const a = q.get('SELECT * FROM accounts WHERE api_key_hash = ?', sha(key));
-  if (!a) throw new HttpError(401, 'Invalid API key');
-  const owner = q.get('SELECT * FROM users WHERE id = ?', a.user_id);
-  if (!owner || owner.status !== 'active') throw new HttpError(403, 'Account owner is suspended');
-  const list = Array.isArray(ctx.body.trades) ? ctx.body.trades : [];
-  const openList = Array.isArray(ctx.body.open_positions) ? ctx.body.open_positions : [];
-  if (!list.length && !openList.length) throw bad('Body must contain a non-empty "trades" or "open_positions" array');
-  if (list.length > 500 || openList.length > 200) throw bad('Too many items in one request');
+function ingestForAccount(a, list, openList, source) {
   let inserted = 0, updated = 0, signals = 0; const errors = [];
   q.tx(() => {
     list.forEach((raw, i) => {
@@ -429,7 +419,7 @@ route('POST', '/api/ingest', (ctx) => {
       } else {
         const mir = q.get("SELECT m.id, lp.alias FROM mirrors m JOIN follows f ON f.id = m.follow_id JOIN signals s ON s.id = m.signal_id JOIN leader_profiles lp ON lp.user_id = s.leader_user_id WHERE f.follower_account_id = ? AND m.open_ticket = ?", a.id, t.external_id);
         if (mir) { t.setup = `Copy · ${mir.alias}`; t.tags = 'copy-trade'; }
-        insertTrade(a.user_id, a.id, t, a.platform === 'mt4' ? 'mt4' : 'mt5'); inserted++;
+        insertTrade(a.user_id, a.id, t, source || (a.platform === 'mt4' ? 'mt4' : 'mt5')); inserted++;
       }
     });
     openList.forEach((raw, i) => {
@@ -443,6 +433,22 @@ route('POST', '/api/ingest', (ctx) => {
     q.run("UPDATE accounts SET last_sync = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?", a.id);
   });
   return { inserted, updated, signals, errors };
+}
+
+// ---- Broker ingest (MT5 Expert Advisor / any HTTP client) — API-key authenticated
+route('POST', '/api/ingest', (ctx) => {
+  const key = String(ctx.req.headers['x-api-key'] || '');
+  if (!/^jpx_[0-9a-f]{48}$/.test(key)) throw new HttpError(401, 'Missing or malformed X-API-Key header');
+  rateLimit(`ing:${sha(key)}`, 120, 60000);
+  const a = q.get('SELECT * FROM accounts WHERE api_key_hash = ?', sha(key));
+  if (!a) throw new HttpError(401, 'Invalid API key');
+  const owner = q.get('SELECT * FROM users WHERE id = ?', a.user_id);
+  if (!owner || owner.status !== 'active') throw new HttpError(403, 'Account owner is suspended');
+  const list = Array.isArray(ctx.body.trades) ? ctx.body.trades : [];
+  const openList = Array.isArray(ctx.body.open_positions) ? ctx.body.open_positions : [];
+  if (!list.length && !openList.length) throw bad('Body must contain a non-empty "trades" or "open_positions" array');
+  if (list.length > 500 || openList.length > 200) throw bad('Too many items in one request');
+  return ingestForAccount(a, list, openList);
 }, { public: true, noCsrf: true });
 
 route('GET', '/api/ingest/ping', (ctx) => {
@@ -604,12 +610,14 @@ route('DELETE', '/api/admin/users/:id', (ctx) => {
   const admin = requireAdmin(ctx); const target = q.get('SELECT * FROM users WHERE id = ?', Number(ctx.params.id));
   if (!target) throw new HttpError(404, 'User not found');
   if (target.id === admin.id) throw bad('Use Settings to delete your own account');
+  for (const x of q.all('SELECT metaapi_id FROM accounts WHERE user_id = ? AND metaapi_id IS NOT NULL', target.id)) require('./lib/metaapi').removeAccount(x.metaapi_id);
   q.run('DELETE FROM users WHERE id = ?', target.id);
   audit(admin.id, 'deleted user', target.email);
   return { ok: true };
 });
 
-require('./lib/routes-extra')({ route, q, HttpError, bad, requireUser, requireAdmin, str, rateLimit, sha, EMAIL_RE, audit, limits, needPlan, loadTrades, analyze, publicUser });
+require('./lib/routes-extra')({ route, q, HttpError, bad, requireUser, requireAdmin, str, rateLimit, sha, EMAIL_RE, audit, limits, needPlan, loadTrades, analyze, publicUser, ingestForAccount, hashPassword, publicAccount });
+require('./lib/metaapi').start({ ingestForAccount });
 
 /* ------------------------------------------------------------------ static + dispatch */
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.txt': 'text/plain; charset=utf-8', '.mq5': 'text/plain; charset=utf-8', '.webmanifest': 'application/manifest+json' };
