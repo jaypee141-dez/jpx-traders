@@ -43,8 +43,16 @@ server.listen(0, async () => {
     const now = Date.now(), iso = (d) => new Date(d).toISOString();
     const hist = [[3, 120], [2, -50], [1, 80]];
     for (const [days, profit] of hist) { r = await L.call('POST', '/api/trades', { account_id: lacc.id, symbol: 'EURUSD', side: 'buy', volume: 1, open_time: iso(now - days * 86400000), close_time: iso(now - days * 86400000 + 3600000), profit, commission: 0 }); ok(r.status === 200, 'leader history trade'); }
-    r = await anon.call('GET', '/api/public/leaders'); ok(r.body.leaders.filter((x) => x.featured).length === 5 && r.body.leaders[0].avatar.startsWith('/img/traders/'), 'five demo top traders are on the leaderboard with images'); const top = r.body.leaders.find((x) => x.alias === 'AlphaFX');
-    ok(top && top.alias === 'AlphaFX' && top.trades === 3 && top.gain === 1.5 && top.win_rate > 66 && top.user_id === undefined, 'public leaderboard shows real stats (+1.5%) without internal ids: ' + JSON.stringify(top && [top.gain, top.trades]));
+    r = await anon.call('GET', '/api/public/leaders'); ok(r.body.leaders.filter((x) => x.featured).length === 5 && r.body.leaders[0].avatar.startsWith('/img/traders/'), 'five demo top traders are on the leaderboard with images'); ok(!r.body.leaders.some((x) => x.alias === 'AlphaFX'), 'real strategies need admin approval before appearing on the website');
+    const PX = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=';
+    r = await L.call('PATCH', '/api/me', { avatar: 'javascript:alert(1)' }); ok(r.status === 400, 'unsafe profile picture rejected');
+    r = await L.call('PATCH', '/api/me', { avatar: PX }); ok(r.status === 200 && r.body.user.avatar === PX, 'profile picture saved');
+    r = await A.call('GET', '/api/admin/featured'); const lead = r.body.real.find((x) => x.alias === 'AlphaFX'); ok(lead && lead.approved === false && lead.avatar === PX, 'admin sees the user strategy (not approved) with profile picture');
+    r = await F.call('PATCH', `/api/admin/leaders/${lead.user_id}/approval`, { approved: true }); ok(r.status === 403, 'only admin can approve strategies');
+    r = await A.call('PATCH', `/api/admin/leaders/${lead.user_id}/approval`, { approved: true }); ok(r.status === 200, 'admin approves strategy');
+    r = await anon.call('GET', '/api/public/leaders');
+    const top = r.body.leaders.find((x) => x.alias === 'AlphaFX');
+    ok(top && top.alias === 'AlphaFX' && top.avatar === PX && top.trades === 3 && top.gain === 1.5 && top.win_rate > 66 && top.user_id === undefined, 'public leaderboard shows real stats (+1.5%) without internal ids: ' + JSON.stringify(top && [top.gain, top.trades]));
 
     // followers
     r = await F.call('POST', '/api/accounts', { name: 'Follower MT5', platform: 'mt5', starting_balance: 5000 }); const facc = r.body.account;
@@ -153,11 +161,12 @@ server.listen(0, async () => {
     r = await F.call('POST', `/api/support/tickets/${tid}/messages`, { message: 'Fixed, thanks!' }); r = await F.call('PATCH', `/api/support/tickets/${tid}`, { status: 'closed' }); ok(r.status === 200, 'user closes ticket');
 
     // reviews
-    r = await anon.call('GET', '/api/public/reviews'); ok(r.body.reviews.length === 0, 'no public reviews before approval');
+    r = await anon.call('GET', '/api/public/reviews'); ok(r.body.reviews.length === 4 && r.body.reviews[0].name === 'David K.' && r.body.reviews[0].avatar.startsWith('/img/traders/'), 'four demo testimonials are on the website by default');
     r = await F.call('POST', '/api/reviews', { rating: 5, quote: 'Copying a leader into my journal account is seamless.', role: 'Forex trader' }); ok(r.status === 200, 'review submitted');
-    r = await anon.call('GET', '/api/public/reviews'); ok(r.body.reviews.length === 0, 'pending review not public');
+    r = await anon.call('GET', '/api/public/reviews'); ok(r.body.reviews.length === 4, 'pending review not public');
+    r = await A.call('GET', '/api/admin/user-reviews'); ok(r.body.reviews.length === 1 && r.body.reviews[0].status === 'pending' && r.body.reviews[0].name === 'Fiona Follower', 'admin can list users who submitted reviews');
     r = await A.call('GET', '/api/admin/reviews'); const rid = r.body.reviews[0].id; r = await A.call('PATCH', `/api/admin/reviews/${rid}`, { status: 'approved' }); ok(r.status === 200, 'admin approves review');
-    r = await anon.call('GET', '/api/public/reviews'); ok(r.body.reviews.length === 1 && r.body.reviews[0].name === 'Fiona F.' && r.body.reviews[0].role === 'Forex trader', 'approved review is public with short name');
+    r = await anon.call('GET', '/api/public/reviews'); const fi = r.body.reviews.find((x) => x.name === 'Fiona F.'); ok(r.body.reviews.length === 5 && fi && fi.role === 'Forex trader', 'approved user review is public with short name');
 
     // editable website settings + admin email
     r = await anon.call('GET', '/api/public/site'); ok(r.body.site.stat_number === '10,000+' && r.body.site.stat_label === 'Active Traders Worldwide' && r.body.site.reviews_intro === 'Join thousands of traders who are already growing with JPX.' && r.body.site.social_x === '', 'site defaults match the design');
@@ -188,9 +197,11 @@ server.listen(0, async () => {
     r = await anon.call('GET', '/api/public/leaders'); ok(r.body.leaders.length === 0, 'all demo traders can be deleted');
 
     // testimonials (admin-managed, no built-in samples)
-    r = await anon.call('GET', '/api/public/reviews'); ok(r.body.reviews.length === 1, 'only the approved user review is public (no samples)');
+    r = await anon.call('GET', '/api/public/reviews'); ok(r.body.reviews.length === 5, 'demo + approved user review are public');
+    for (const t of (await A.call('GET', '/api/admin/testimonials')).body.testimonials) await A.call('DELETE', `/api/admin/testimonials/${t.id}`);
+    r = await anon.call('GET', '/api/public/reviews'); ok(r.body.reviews.length === 1, 'demo testimonials can all be deleted by the admin');
     r = await A.call('POST', '/api/admin/testimonials', { name: 'Jane Doe', role: 'Forex trader', quote: 'Great tool for reviewing my trades.', rating: 5 }); const tid2 = r.body.id; ok(r.status === 200, 'admin adds a testimonial');
-    r = await anon.call('GET', '/api/public/reviews'); ok(r.body.reviews[0].name === 'Jane Doe' && r.body.reviews.length === 2, 'testimonial appears on the website');
+    r = await anon.call('GET', '/api/public/reviews'); ok(r.body.reviews[0].name === 'Jane Doe' && r.body.reviews.length === 2, 'manually added testimonial appears on the website');
     r = await F.call('POST', '/api/admin/testimonials', { name: 'x', quote: 'y' }); ok(r.status === 403, 'non-admin cannot add testimonials');
     r = await A.call('DELETE', `/api/admin/testimonials/${tid2}`); r = await anon.call('GET', '/api/public/reviews'); ok(r.body.reviews.length === 1, 'testimonial deleted');
   } catch (e) { console.log('ERROR', e); fail++; }

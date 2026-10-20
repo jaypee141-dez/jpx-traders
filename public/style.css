@@ -324,3 +324,5 @@ pre.code { padding: 12px 14px; overflow-x: auto; margin: 0; white-space: pre-wra
 }
 @media (min-width: 641px) { .show-sm { display: none !important; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+img.avatar { border-radius: 50%; display: block; flex: none; }

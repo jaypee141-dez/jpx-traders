@@ -79,8 +79,9 @@ function setSession(req, res, token) {
 const clearCookie = (req) => `${COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${isSecure(req) ? '; Secure' : ''}`;
 const clientIp = (req) => (process.env.TRUST_PROXY === '1' ? String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() : '') || req.socket.remoteAddress || '';
 
+function avatarOk(v) { v = String(v || ''); if (!v) return ''; if (/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(v) && v.length <= 140000) return v; throw bad('Photo must be a JPEG, PNG or WebP image under 100 KB'); }
 function publicUser(u) {
-  return { id: u.id, email: u.email, name: u.name, role: u.role, status: u.status, timezone: u.timezone, currency: u.currency, created_at: u.created_at, plan: planInfo(u) };
+  return { id: u.id, email: u.email, name: u.name, role: u.role, status: u.status, timezone: u.timezone, currency: u.currency, created_at: u.created_at, avatar: u.avatar || '', plan: planInfo(u) };
 }
 function limits(u) { return planInfo(u).limits; }
 function needPlan(u, ok, message) { if (!ok) throw new HttpError(402, message); }
@@ -199,7 +200,8 @@ route('POST', '/api/auth/register', async (ctx) => {
   if (q.get('SELECT id FROM users WHERE email = ?', email)) throw bad('An account with this email already exists');
   const role = email === ADMIN_EMAIL ? 'admin' : 'user';
   const hash = await hashPassword(pw);
-  const r = q.run("INSERT INTO users (email, name, password_hash, role, timezone, plan, plan_source, trial_ends_at) VALUES (?,?,?,?,?,'pro','trial',?)", email, name, hash, role, tz, new Date(Date.now() + TRIAL_DAYS * 86400000).toISOString());
+  const avatar = b.avatar ? avatarOk(b.avatar) : '';
+  const r = q.run("INSERT INTO users (email, name, password_hash, role, timezone, plan, plan_source, trial_ends_at, avatar) VALUES (?,?,?,?,?,'pro','trial',?,?)", email, name, hash, role, tz, new Date(Date.now() + TRIAL_DAYS * 86400000).toISOString(), avatar);
   const uid = Number(r.lastInsertRowid);
   q.run('INSERT INTO risk_rules (user_id) VALUES (?)', uid);
   return startSession(ctx, uid);
@@ -239,7 +241,8 @@ route('PATCH', '/api/me', (ctx) => {
   let tz = b.timezone !== undefined ? String(b.timezone) : u.timezone;
   if (!validTimezone(tz)) throw bad('Unknown timezone');
   const currency = b.currency !== undefined ? str(b.currency, 8, 'Currency', true).toUpperCase() : u.currency;
-  q.run('UPDATE users SET name = ?, timezone = ?, currency = ? WHERE id = ?', name, tz, currency, u.id);
+  const avatar = b.avatar !== undefined ? avatarOk(b.avatar) : u.avatar;
+  q.run('UPDATE users SET name = ?, timezone = ?, currency = ?, avatar = ? WHERE id = ?', name, tz, currency, avatar, u.id);
   return { user: publicUser(q.get('SELECT * FROM users WHERE id = ?', u.id)) };
 });
 

@@ -7,7 +7,7 @@ broker/MT5 sync, and an admin panel. Zero npm dependencies (Node 22.5+, built-in
     node --no-warnings server.js          # http://localhost:3000
     PORT=8080 ADMIN_EMAIL=you@x.com node --no-warnings server.js
 
-The admin is jpee49275@gmail.com: register with that email and the account is admin automatically (override with ADMIN_EMAIL). Website text, the hero traders number and the social links are edited in Admin > Website settings.
+The admin is jpee49275@gmail.com: register with that email and the account is admin automatically (override with ADMIN_EMAIL). Website text, the hero traders number, social links, the leaderboard and testimonials are all managed in Admin. Users' shared strategies appear on the website only after you approve them there.
 
 | Env var | Purpose |
 |---|---|

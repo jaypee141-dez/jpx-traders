@@ -18,17 +18,18 @@
     var reg = mode === 'register';
     app.innerHTML = '<div class="auth"><aside class="auth-aside"><a class="brand" href="/">' + JPX.logo() + 'JPX Traders</a><div><h2>See what your trading is really made of.</h2><p>Log every trade, tag the setup, and let the numbers show which habits pay and which cost you.</p></div><span style="color:var(--rail-ink);font-size:13px">Your journal is private to your account.</span></aside>' +
       '<main class="auth-main"><form class="auth-card" id="auth-form" novalidate><a class="brand show-sm" href="/" style="color:var(--ink)">' + JPX.logo() + 'JPX Traders</a><div><h1>' + (reg ? 'Create your account' : 'Welcome back') + '</h1><p class="muted" style="margin-top:6px">' + (reg ? 'Start journaling in a couple of minutes.' : 'Sign in to your trading journal.') + '</p></div>' +
-      (reg ? '<div class="field"><label for="au-name">Name</label><input class="input" id="au-name" name="name" autocomplete="name" maxlength="80" required></div>' : '') +
+      (reg ? '<div class="field"><label for="au-name">Name</label><input class="input" id="au-name" name="name" autocomplete="name" maxlength="80" required></div><div class="field"><label for="au-photo">Profile photo <span class="muted" style="font-weight:500">(optional)</span></label><div style="display:flex;gap:12px;align-items:center"><img id="au-prev" alt="" width="44" height="44" style="border-radius:50%;object-fit:cover;background:var(--surface-2);display:none"><input class="input sm" id="au-photo" type="file" accept="image/*"></div></div>' : '') +
       '<div class="field"><label for="au-email">Email</label><input class="input" id="au-email" name="email" type="email" autocomplete="email" inputmode="email" required></div>' +
       '<div class="field"><label for="au-pw">Password</label><input class="input" id="au-pw" name="password" type="password" autocomplete="' + (reg ? 'new-password' : 'current-password') + '" required' + (reg ? ' minlength="8"' : '') + '>' + (reg ? '<span class="hint">At least 8 characters.</span>' : '') + '</div>' +
       '<div class="form-error" id="au-err" hidden role="alert"></div><button class="btn primary" type="submit" style="min-height:46px">' + (reg ? 'Create account' : 'Sign in') + '</button>' +
       '<p class="auth-switch">' + (reg ? 'Already have an account? <a href="/login" id="sw">Sign in</a>' : 'New to JPX Traders? <a href="/register" id="sw">Create an account</a>') + '</p></form></main></div>';
     $('#sw').addEventListener('click', function (e) { e.preventDefault(); history.pushState({}, '', reg ? '/login' : '/register'); showAuth(reg ? 'login' : 'register'); });
     $('#au-' + (reg ? 'name' : 'email')).focus();
+    var photo = ''; var pf = $('#au-photo'); if (pf) pf.addEventListener('change', function (e) { JPX.imageToDataUrl(e.target.files[0], 160).then(function (u) { photo = u; var pv = $('#au-prev'); pv.src = u; pv.style.display = 'block'; }, function (er) { photo = ''; JPX.toast(er.message, 'err'); }); });
     $('#auth-form').addEventListener('submit', function (e) {
       e.preventDefault(); var f = e.target, err = $('#au-err'), btn = $('button[type=submit]', f); err.hidden = true;
       var data = {}; Array.prototype.forEach.call(f.elements, function (el) { if (el.name) data[el.name] = el.value; });
-      if (reg) { data.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; if (!data.name.trim()) return fail('Enter your name'); }
+      if (reg) { data.avatar = photo; data.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; if (!data.name.trim()) return fail('Enter your name'); }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email.trim())) return fail('Enter a valid email address');
       if (!data.password) return fail('Enter your password');
       if (reg && data.password.length < 8) return fail('Password must be at least 8 characters');
@@ -47,7 +48,7 @@
     var u = S.user, cur = currentName(), items = NAV.concat(MANAGE).concat(u.role === 'admin' ? [{ id: 'admin', label: 'Admin', icon: 'admin' }] : []);
     var link = function (n) { return '<a class="nav" href="#/' + n.id + '" data-nav="' + n.id + '"' + (n.id === cur ? ' aria-current="page"' : '') + '>' + JPX.icon(n.icon) + n.label + '</a>'; };
     app.innerHTML = '<div class="shell"><aside class="rail"><a class="brand" href="#/dashboard">' + JPX.logo() + 'JPX Traders</a><nav aria-label="Main">' + NAV.map(link).join('') + '<div class="group">Manage</div>' + MANAGE.map(link).join('') + (u.role === 'admin' ? link({ id: 'admin', label: 'Admin', icon: 'admin' }) : '') + '</nav><div class="spacer"></div>' +
-      '<div class="me"><div class="avatar" aria-hidden="true">' + esc(u.name.trim().charAt(0).toUpperCase()) + '</div><div class="who"><b>' + esc(u.name) + '</b><span>' + esc(u.email) + '</span></div><button class="btn ghost icon sm" id="sign-out" aria-label="Sign out" style="color:#fff;margin-left:auto">' + JPX.icon('logout') + '</button></div></aside>' +
+      '<div class="me">' + JPX.avatar(u.name.trim(), u.avatar, 34) + '<div class="who"><b>' + esc(u.name) + '</b><span>' + esc(u.email) + '</span></div><button class="btn ghost icon sm" id="sign-out" aria-label="Sign out" style="color:#fff;margin-left:auto">' + JPX.icon('logout') + '</button></div></aside>' +
       '<main class="main" id="view" tabindex="-1"></main></div>' +
       '<nav class="tabbar" aria-label="Primary">' + ['dashboard', 'trades', 'copy', 'analytics'].map(function (id) { var n = items.filter(function (i) { return i.id === id; })[0]; return '<a href="#/' + id + '" data-nav="' + id + '"' + (id === cur ? ' aria-current="page"' : '') + '>' + JPX.icon(n.icon) + (id === 'copy' ? 'Copy' : n.label) + '</a>'; }).join('') + '<button id="more-btn" aria-haspopup="dialog">' + JPX.icon('more') + 'More</button></nav>';
     $('#sign-out').addEventListener('click', signOut);

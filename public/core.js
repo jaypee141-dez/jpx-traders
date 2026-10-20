@@ -92,6 +92,35 @@
     var s = p.toString(); return s ? '?' + s : '';
   };
 
+  /* ---------- images: read a file, centre-crop to a square and return a small JPEG data URL ---------- */
+  JPX.imageToDataUrl = function (file, size) {
+    size = size || 160;
+    return new Promise(function (resolve, reject) {
+      if (!file) return reject(new Error('No file chosen'));
+      if (!/^image\//.test(file.type)) return reject(new Error('Please choose an image file (JPG, PNG or WebP)'));
+      if (file.size > 12 * 1024 * 1024) return reject(new Error('That image is too large. Choose one under 12 MB.'));
+      var rd = new FileReader();
+      rd.onerror = function () { reject(new Error('Could not read that file')); };
+      rd.onload = function () {
+        var img = new Image();
+        img.onerror = function () { reject(new Error('That file is not a usable image')); };
+        img.onload = function () {
+          var c = document.createElement('canvas'); c.width = c.height = size; var x = c.getContext('2d'), m = Math.min(img.width, img.height);
+          x.fillStyle = '#fff'; x.fillRect(0, 0, size, size); x.drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, size, size);
+          resolve(c.toDataURL('image/jpeg', 0.85));
+        };
+        img.src = rd.result;
+      };
+      rd.readAsDataURL(file);
+    });
+  };
+  JPX.avatar = function (name, url, size) {
+    size = size || 36; name = String(name || '?');
+    if (url) return '<img class="avatar" src="' + esc(url) + '" alt="" width="' + size + '" height="' + size + '" style="width:' + size + 'px;height:' + size + 'px;object-fit:cover">';
+    var h = 0; for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
+    return '<span class="avatar" style="width:' + size + 'px;height:' + size + 'px;background:linear-gradient(135deg,hsl(' + h + ',70%,48%),hsl(' + ((h + 50) % 360) + ',70%,55%))" aria-hidden="true">' + esc(name.charAt(0).toUpperCase()) + '</span>';
+  };
+
   /* ---------- upgrade prompt (plan limits) ---------- */
   var lastUp = '';
   JPX.upgradePrompt = function (msg) {

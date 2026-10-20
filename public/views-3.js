@@ -194,7 +194,7 @@
     $('#pf', root).addEventListener('submit', function (e) {
       e.preventDefault(); showErr('#pf-err', ''); var data = {}; Array.prototype.forEach.call(e.target.elements, function (el) { if (el.name) data[el.name] = el.value; });
       var b = $('button[type=submit]', e.target); JPX.busy(b, true);
-      JPX.api('PATCH', '/api/me', data).then(function (r) { S.user = r.user; JPX.busy(b, false); JPX.toast('Profile saved'); JPX.renderShell(); }, function (er) { JPX.busy(b, false); showErr('#pf-err', er.message); });
+      JPX.api('PATCH', '/api/me', data).then(function (r) { S.user = r.user; JPX.busy(b, false); JPX.toast('Profile saved'); JPX.renderShell(); JPX.route(); }, function (er) { JPX.busy(b, false); showErr('#pf-err', er.message); });
     });
     $$('#theme-seg button', root).forEach(function (b) { b.addEventListener('click', function () { window.JPXTheme.set(b.dataset.v); $$('#theme-seg button', root).forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }); });
     $('#pw', root).addEventListener('submit', function (e) {
